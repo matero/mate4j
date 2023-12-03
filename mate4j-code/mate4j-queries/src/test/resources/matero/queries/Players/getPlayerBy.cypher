@@ -1,0 +1,1 @@
+MATCH (p:Player {id: ${playerId}) RETURN p LIMIT 1

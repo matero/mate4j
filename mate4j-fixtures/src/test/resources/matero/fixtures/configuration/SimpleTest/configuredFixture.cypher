@@ -1,1 +1,0 @@
-CREATE (n:Test {id: 3, name: 'configured-test-fixture'})

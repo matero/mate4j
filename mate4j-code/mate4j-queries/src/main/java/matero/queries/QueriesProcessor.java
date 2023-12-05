@@ -26,16 +26,15 @@ package matero.queries;
  * #L%
  */
 
-import com.sun.source.tree.MethodTree;
-import com.sun.source.util.TreePathScanner;
-import com.sun.source.util.Trees;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
-import javax.annotation.processing.*;
+import javax.annotation.processing.AbstractProcessor;
+import javax.annotation.processing.Messager;
+import javax.annotation.processing.RoundEnvironment;
+import javax.annotation.processing.SupportedSourceVersion;
 import javax.lang.model.SourceVersion;
 import javax.lang.model.element.*;
-import javax.lang.model.util.Elements;
 import javax.tools.Diagnostic;
 import java.util.Set;
 
@@ -52,43 +51,22 @@ public class QueriesProcessor extends AbstractProcessor {
       final @NonNull Set<@NonNull ? extends TypeElement> annotations,
       final @NonNull RoundEnvironment roundEnv) {
     final var specifications = roundEnv.getElementsAnnotatedWith(Queries.class);
-    final var contracts = new java.util.ArrayList<@NonNull QueriesAnnotatedInterface>();
+    final var interpreter = new QueriesDefinitionsInterpreter(this.processingEnv);
+
     for (final var spec : specifications) {
       try {
-        contracts.add(buildContractFrom(spec));
+        interpreter.interpretQueriesAt(spec);
       } catch (final IllegalQueriesDefinition failure) {
         error(failure.element, failure.getMessage());
       }
     }
 
-    if (!contracts.isEmpty()) {
-      System.out.println(contracts);
+    final var codeBuilder = new Java21ImplementationCodeBuilder();
+    for (final var queries: interpreter.queries()) {
+      System.out.println(codeBuilder.getImplementationCodeFor(queries));
     }
 
     return true;
-  }
-
-  @NonNull QueriesAnnotatedInterface buildContractFrom(final @NonNull Element spec) {
-    if (spec.getKind() != ElementKind.INTERFACE) {
-      throw new IllegalQueriesDefinition(spec, "only root interfaces allowed to be annotated with @" + Queries.class.getCanonicalName());
-    }
-    if (spec.getEnclosingElement().getKind() != ElementKind.PACKAGE) {
-      throw new IllegalQueriesDefinition(spec, "only root interfaces allowed to be annotated with @" + Queries.class.getCanonicalName());
-    }
-
-    final var specType = (TypeElement) spec;
-    final var q = new QueriesAnnotatedInterface(specType);
-
-    for (final var enclosed : spec.getEnclosedElements()) {
-      if (enclosed.getKind() == ElementKind.METHOD) {
-        final var method = (ExecutableElement) enclosed;
-
-        if (!method.getModifiers().contains(Modifier.STATIC)) {
-          q.registerMatchMethod(method);
-        }
-      }
-    }
-    return q;
   }
 
   void error(
@@ -100,13 +78,5 @@ public class QueriesProcessor extends AbstractProcessor {
 
   @NonNull Messager messager() {
     return this.processingEnv.getMessager();
-  }
-
-  public class MethodPrintScanner extends TreePathScanner<Void, Trees> {
-    @Override
-    public Void visitMethod(final MethodTree methodTree, Trees o) {
-      System.out.println(methodTree);
-      return null;
-    }
   }
 }

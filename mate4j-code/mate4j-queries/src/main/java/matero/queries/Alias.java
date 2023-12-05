@@ -30,7 +30,7 @@ import org.checkerframework.checker.nullness.qual.NonNull;
 
 import java.lang.annotation.*;
 
-@Target(ElementType.METHOD)
+@Target({ElementType.METHOD, ElementType.PARAMETER})
 @Retention(RetentionPolicy.SOURCE)
 @Documented
 @Inherited

@@ -29,20 +29,33 @@ package matero.queries;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
-import javax.lang.model.element.ExecutableElement;
-import javax.lang.model.element.Name;
+import javax.lang.model.element.PackageElement;
 import javax.lang.model.element.TypeElement;
-import javax.lang.model.element.VariableElement;
-import javax.lang.model.type.TypeMirror;
-import java.util.LinkedList;
+import java.util.Collection;
 import java.util.List;
+import java.util.stream.Collectors;
 
 class QueriesAnnotatedInterface {
   private final @NonNull TypeElement target;
-  private final LinkedList<MatchMethod> matchMethods = new LinkedList<>();
+  private final @NonNull List<QueryMethod> methods;
 
-  QueriesAnnotatedInterface(final TypeElement target) {
+  private final @NonNull List<@NonNull String> imports;
+
+  QueriesAnnotatedInterface(
+      final @NonNull TypeElement target,
+      final @NonNull Collection<QueryMethod> methods,
+      final @NonNull Collection<@NonNull String> imports) {
     this.target = target;
+    this.methods = List.copyOf(methods);
+    this.imports = List.copyOf(imports);
+  }
+
+  @NonNull String packageName() {
+    return getPackage().getQualifiedName().toString();
+  }
+
+  private PackageElement getPackage() {
+    return (PackageElement) this.target.getEnclosingElement();
   }
 
   @Override
@@ -57,42 +70,17 @@ class QueriesAnnotatedInterface {
 
   @Override
   public String toString() {
-    return "QueriesAnnotatedInterface(target=" + this.target + ", MATCH=" + this.matchMethods + ')';
+    return "QueriesAnnotatedInterface(\n  target=" + this.target + ",\n  imports=" + this.imports.stream().collect(Collectors.joining("\n", "import ", ";")) + ",\n  queries=" + this.methods + ')';
   }
 
-
-  void registerMatchMethod(final @NonNull ExecutableElement method) {
-    if (method.isDefault()) {
-      throw new IllegalQueriesDefinition(method, "methods with default implementation are not allowed");
-    }
-
-    final var match = method.getAnnotation(MATCH.class);
-    if (match == null) {
-      throw new IllegalQueriesDefinition(method, "only cypher query methods can be defined as instance methods");
-    }
-
-    if (!method.getTypeParameters().isEmpty()) {
-      throw new IllegalQueriesDefinition(method, "generic methods are not allowed");
-    }
-
-    this.matchMethods.add(new MatchMethod(
-        method.getSimpleName(),
-        method.getReturnType(),
-        method.getParameters(),
-        method.getThrownTypes(),
-        match.value())
-    );
+  public @NonNull List<@NonNull String> imports() {
+    return this.imports;
   }
-}
 
-record MatchMethod(
-    @NonNull Name name,
-    @NonNull TypeMirror returnType,
-    @NonNull List<@NonNull ? extends VariableElement> parameters,
-    @NonNull List<@NonNull ? extends TypeMirror> thrownTypes,
-    @NonNull String cypher) {
-
-  String code() {
-    return returnType.toString() + ' ' + name + '(';
+  String interfaceName() {
+    return this.target.getSimpleName().toString();
+  }
+  final @NonNull List<QueryMethod> methods() {
+    return this.methods;
   }
 }

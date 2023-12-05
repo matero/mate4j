@@ -27,7 +27,10 @@ package matero.queries;
  */
 
 import com.google.testing.compile.JavaFileObjects;
+import org.checkerframework.checker.nullness.qual.NonNull;
 import org.junit.jupiter.api.Test;
+
+import java.util.Map;
 
 import static com.google.testing.compile.CompilationSubject.assertThat;
 import static com.google.testing.compile.Compiler.javac;
@@ -67,17 +70,44 @@ public class QueriesProcessorTest {
     final var compilation = javac()
         .withProcessors(new QueriesProcessor())
         .compile(JavaFileObjects.forSourceString("sample.queries.Players", """
-package sample.queries;
+            package sample.queries;
+                                               
+            import org.checkerframework.checker.nullness.qual.NonNull;
+            import org.checkerframework.checker.nullness.qual.Nullable;
+            import org.checkerframework.checker.index.qual.Positive;
 
-import matero.queries.Queries;
-import matero.queries.MATCH;
-
-@Queries
-public interface Players {
-  @MATCH("MATCH (p:Player {id: ${playerId}) RETURN p IS NOT NULL")
-  boolean existsPlayerWithId(long playerId);  
-}"""));
+            import matero.queries.Queries;
+            import matero.queries.MATCH;
+            import matero.queries.Alias;
+            
+            import java.util.List;
+            import java.util.Set;
+            import java.util.concurrent.atomic.AtomicBoolean;
+            
+            import org.neo4j.exceptions.EntityNotFoundException;
+                                                             
+            @Queries
+            public interface Players {
+              @MATCH(\"\"\"
+              MATCH (p:Player {id: ${playerId})
+              RETURN p IS NOT NULL\"\"\")
+              boolean existsPlayerWithId(@Positive @Alias("index") int i, final @Nullable List<@NonNull Set<@NonNull AtomicBoolean>> playerId)
+                  throws NullPointerException, EntityNotFoundException;
+            }"""));
     assertThat(compilation)
         .succeeded();
+  }
+  public boolean exists(final @NonNull int playerId) {
+    final var queryParameter = Map.<@NonNull String, @NonNull Object>of(
+        "playerId", // by default, use parameter name
+        playerId);
+
+    return CurrentSession.get()
+        .executeRead(tx -> { // it is a MATCH -> executeRead
+          final var result = tx.run("MATCH (p:Player {id: ${playerId}) RETURN p IS NOT NULL", queryParameter);
+          final var row = result.next();
+          final var value = row.get(0);
+          return value.asBoolean();
+        });
   }
 }

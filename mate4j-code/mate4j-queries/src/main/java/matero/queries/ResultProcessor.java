@@ -5,13 +5,10 @@ import org.checkerframework.checker.nullness.qual.NonNull;
 import javax.lang.model.element.*;
 import javax.lang.model.type.*;
 import java.util.List;
-import java.util.Set;
 
-enum ResultProcessor
-    implements
-    TypeVisitor<@NonNull StringBuilder, @NonNull StringBuilder>,
+class ResultProcessor
+    implements TypeVisitor<@NonNull StringBuilder, @NonNull StringBuilder>,
     AnnotationValueVisitor<@NonNull StringBuilder, @NonNull StringBuilder> {
-  INSTANCE;
 
   @Override
   public @NonNull StringBuilder visit(final @NonNull TypeMirror t) {
@@ -249,7 +246,7 @@ enum ResultProcessor
       final @NonNull AnnotationMirror a,
       final @NonNull StringBuilder stmts) {
     a.getAnnotationType().accept(this, stmts);
-    for (final var av: a.getElementValues().values()) {
+    for (final var av : a.getElementValues().values()) {
       av.accept(this, stmts);
     }
     return stmts;
@@ -259,7 +256,7 @@ enum ResultProcessor
   public @NonNull StringBuilder visitArray(
       final @NonNull List<? extends AnnotationValue> vals,
       final @NonNull StringBuilder stmts) {
-    for (final var av: vals) {
+    for (final var av : vals) {
       av.accept(this, stmts);
     }
     return stmts;

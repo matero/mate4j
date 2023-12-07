@@ -88,11 +88,9 @@ public class QueriesProcessorTest {
                                                              
             @Queries
             public interface Players {
-              @MATCH(\"\"\"
-              MATCH (p:Player {id: ${playerId})
-              RETURN p IS NOT NULL\"\"\")
-              boolean existsPlayerWithId(@Positive @Alias("index") int i, final @Nullable List<@NonNull Set<@NonNull AtomicBoolean>> playerId)
-                  throws NullPointerException, EntityNotFoundException;
+              @MATCH("MATCH (p:Player {id: ${playerId}) RETURN p IS NOT NULL")
+              boolean existsPlayerWithId(long id)
+                  throws EntityNotFoundException;
             }"""));
     assertThat(compilation)
         .succeeded();

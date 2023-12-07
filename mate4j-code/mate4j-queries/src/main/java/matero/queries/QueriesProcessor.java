@@ -34,7 +34,8 @@ import javax.annotation.processing.Messager;
 import javax.annotation.processing.RoundEnvironment;
 import javax.annotation.processing.SupportedSourceVersion;
 import javax.lang.model.SourceVersion;
-import javax.lang.model.element.*;
+import javax.lang.model.element.Element;
+import javax.lang.model.element.TypeElement;
 import javax.tools.Diagnostic;
 import java.util.Set;
 
@@ -61,7 +62,7 @@ public class QueriesProcessor extends AbstractProcessor {
       }
     }
 
-    final var codeBuilder = new Java21ImplementationCodeBuilder();
+    final var codeBuilder = new Java21ImplementationCodeBuilder(this.processingEnv);
     for (final var queries: interpreter.queries()) {
       System.out.println(codeBuilder.getImplementationCodeFor(queries));
     }

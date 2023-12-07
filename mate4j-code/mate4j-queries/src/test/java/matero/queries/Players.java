@@ -26,15 +26,6 @@ package matero.queries;
  * #L%
  */
 
-import matero.queries.model.Player;
-import matero.queries.model.PlayerId;
-import org.checkerframework.checker.nullness.qual.NonNull;
-import org.checkerframework.checker.nullness.qual.Nullable;
-import org.neo4j.driver.types.Node;
-
-import javax.annotation.Generated;
-import java.util.Map;
-import java.util.Optional;
 /*
 @Queries
 public interface Players {

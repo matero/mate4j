@@ -4,10 +4,15 @@ import org.checkerframework.checker.nullness.qual.NonNull;
 
 import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.type.*;
+import javax.lang.model.util.Types;
 import java.util.List;
 
-enum RepresentType implements TypeVisitor<@NonNull StringBuilder, @NonNull StringBuilder> {
-  INSTANCE;
+final class RepresentType implements TypeVisitor<@NonNull StringBuilder, @NonNull StringBuilder> {
+  private final @NonNull Types types;
+
+  RepresentType(final @NonNull Types types) {
+    this.types = types;
+  }
 
   @Override
   public @NonNull StringBuilder visit(final @NonNull TypeMirror t) {

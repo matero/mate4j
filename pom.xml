@@ -1,103 +1,103 @@
 <project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://maven.apache.org/POM/4.0.0"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
                       http://maven.apache.org/xsd/maven-4.0.0.xsd">
-    <modelVersion>4.0.0</modelVersion>
+  <modelVersion>4.0.0</modelVersion>
 
-    <groupId>matero</groupId>
-    <artifactId>mate4j</artifactId>
-    <version>0.1.0-SNAPSHOT</version>
-    <packaging>pom</packaging>
-    <name>Mate4j</name>
+  <groupId>matero</groupId>
+  <artifactId>mate4j</artifactId>
+  <version>0.1.0-SNAPSHOT</version>
+  <packaging>pom</packaging>
+  <name>Mate4j</name>
 
-    <organization>
-        <name>matero</name>
-        <url>https://github.com/matero</url>
-    </organization>
+  <organization>
+    <name>matero</name>
+    <url>https://github.com/matero</url>
+  </organization>
 
-    <inceptionYear>2023</inceptionYear>
+  <inceptionYear>2023</inceptionYear>
 
-    <developers>
-        <developer>
-            <id>matero</id>
-            <name>Juan J. Gil</name>
-            <email>matero _at_ gmail _dot_ com</email>
-            <url>https://github.com/matero</url>
-            <roles>
-                <role>architect</role>
-                <role>developer</role>
-                <role>tester</role>
-                <role>father</role>
-                <role>mate drinker</role>
-                <role>mate cebator :P</role>
-            </roles>
-            <timezone>GMT-3</timezone>
-        </developer>
-    </developers>
+  <developers>
+    <developer>
+      <id>matero</id>
+      <name>Juan J. Gil</name>
+      <email>matero _at_ gmail _dot_ com</email>
+      <url>https://github.com/matero</url>
+      <roles>
+        <role>architect</role>
+        <role>developer</role>
+        <role>tester</role>
+        <role>father</role>
+        <role>mate drinker</role>
+        <role>mate cebator :P</role>
+      </roles>
+      <timezone>GMT-3</timezone>
+    </developer>
+  </developers>
 
-    <properties>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-    </properties>
+  <properties>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+  </properties>
 
-    <licenses>
-        <license>
-            <name>mit</name>
-            <url>https://opensource.org/license/mit/</url>
-            <distribution>repo</distribution>
-        </license>
-    </licenses>
+  <licenses>
+    <license>
+      <name>mit</name>
+      <url>https://opensource.org/license/mit/</url>
+      <distribution>repo</distribution>
+    </license>
+  </licenses>
 
-    <modules>
-        <module>mate4j-code</module>
-    </modules>
+  <modules>
+    <module>mate4j-code</module>
+  </modules>
 
-    <build>
-        <defaultGoal>clean package</defaultGoal>
+  <build>
+    <defaultGoal>clean package</defaultGoal>
 
-        <pluginManagement>
-            <plugins>
-                <plugin>
-                    <artifactId>maven-clean-plugin</artifactId>
-                    <groupId>org.apache.maven.plugins</groupId>
-                    <version>3.2.0</version>
-                </plugin>
+    <pluginManagement>
+      <plugins>
+        <plugin>
+          <artifactId>maven-clean-plugin</artifactId>
+          <groupId>org.apache.maven.plugins</groupId>
+          <version>3.2.0</version>
+        </plugin>
 
-                <plugin>
-                    <artifactId>maven-resources-plugin</artifactId>
-                    <groupId>org.apache.maven.plugins</groupId>
-                    <version>3.3.0</version>
-                </plugin>
+        <plugin>
+          <artifactId>maven-resources-plugin</artifactId>
+          <groupId>org.apache.maven.plugins</groupId>
+          <version>3.3.0</version>
+        </plugin>
 
-                <plugin>
-                    <artifactId>maven-jar-plugin</artifactId>
-                    <groupId>org.apache.maven.plugins</groupId>
-                    <version>3.3.0</version>
-                </plugin>
+        <plugin>
+          <artifactId>maven-jar-plugin</artifactId>
+          <groupId>org.apache.maven.plugins</groupId>
+          <version>3.3.0</version>
+        </plugin>
 
-                <plugin>
-                    <artifactId>maven-install-plugin</artifactId>
-                    <groupId>org.apache.maven.plugins</groupId>
-                    <version>3.1.0</version>
-                </plugin>
+        <plugin>
+          <artifactId>maven-install-plugin</artifactId>
+          <groupId>org.apache.maven.plugins</groupId>
+          <version>3.1.0</version>
+        </plugin>
 
-                <plugin>
-                    <artifactId>maven-deploy-plugin</artifactId>
-                    <groupId>org.apache.maven.plugins</groupId>
-                    <version>3.0.0</version>
-                </plugin>
+        <plugin>
+          <artifactId>maven-deploy-plugin</artifactId>
+          <groupId>org.apache.maven.plugins</groupId>
+          <version>3.0.0</version>
+        </plugin>
 
-                <plugin>
-                    <artifactId>maven-site-plugin</artifactId>
-                    <groupId>org.apache.maven.plugins</groupId>
-                    <version>4.0.0-M4</version>
-                </plugin>
+        <plugin>
+          <artifactId>maven-site-plugin</artifactId>
+          <groupId>org.apache.maven.plugins</groupId>
+          <version>4.0.0-M4</version>
+        </plugin>
 
-                <plugin>
-                    <artifactId>maven-project-info-reports-plugin</artifactId>
-                    <groupId>org.apache.maven.plugins</groupId>
-                    <version>3.4.1</version>
-                </plugin>
-            </plugins>
-        </pluginManagement>
-    </build>
+        <plugin>
+          <artifactId>maven-project-info-reports-plugin</artifactId>
+          <groupId>org.apache.maven.plugins</groupId>
+          <version>3.4.1</version>
+        </plugin>
+      </plugins>
+    </pluginManagement>
+  </build>
 </project>

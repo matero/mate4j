@@ -1,1 +1,0 @@
-MATCH (p:Player {id: ${playerId}) RETURN p IS NOT NULL

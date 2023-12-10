@@ -1,5 +1,5 @@
 /**
- * Abstractions used to model queries.
+ * Annotations used to mark interfaces as Queries and to define metadata when needed.
  */
 package matero.queries;
 /*-

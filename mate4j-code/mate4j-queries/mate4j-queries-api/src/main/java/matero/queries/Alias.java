@@ -30,6 +30,9 @@ import org.checkerframework.checker.nullness.qual.NonNull;
 
 import java.lang.annotation.*;
 
+/**
+ * Indicates the alias to use to set a parameter or to fetch data from a result.
+ */
 @Target({ElementType.METHOD, ElementType.PARAMETER})
 @Retention(RetentionPolicy.SOURCE)
 @Documented

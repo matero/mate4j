@@ -37,17 +37,17 @@ import javax.lang.model.element.*;
 import java.util.List;
 import java.util.TreeSet;
 
-final class QueriesDefinitionsInterpreter {
+final class QueriesDefinitionsParser {
   private final @NonNull ProcessingEnvironment processingEnv;
   private final @NonNull List<@NonNull QueriesAnnotatedInterface> queries;
   private final @NonNull List<@NonNull QueryMethod> methods;
   private final @NonNull TreeSet<@NonNull String> imports;
 
-  public QueriesDefinitionsInterpreter(final @NonNull ProcessingEnvironment processingEnv) {
+  public QueriesDefinitionsParser(final @NonNull ProcessingEnvironment processingEnv) {
     this(processingEnv, new java.util.ArrayList<>(), new java.util.ArrayList<>(), new TreeSet<>());
   }
 
-  QueriesDefinitionsInterpreter(
+  QueriesDefinitionsParser(
       final @NonNull ProcessingEnvironment processingEnv,
       final @NonNull List<@NonNull QueriesAnnotatedInterface> queries,
       final @NonNull List<@NonNull QueryMethod> methods,
@@ -58,7 +58,7 @@ final class QueriesDefinitionsInterpreter {
     this.imports = imports;
   }
 
-  void interpretQueriesAt(final @NonNull Element spec) {
+  void parseQueriesAt(final @NonNull Element spec) {
     if (spec.getKind() != ElementKind.INTERFACE) {
       throw new IllegalQueriesDefinition(spec, "only root interfaces allowed to be annotated with @" + Queries.class.getCanonicalName());
     }

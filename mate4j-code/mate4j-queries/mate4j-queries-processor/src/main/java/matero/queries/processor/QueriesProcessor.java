@@ -39,6 +39,7 @@ import javax.lang.model.SourceVersion;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.TypeElement;
 import javax.tools.Diagnostic;
+import java.util.List;
 import java.util.Set;
 
 @SupportedSourceVersion(SourceVersion.RELEASE_21)
@@ -53,29 +54,43 @@ public class QueriesProcessor extends AbstractProcessor {
   public boolean process(
       final @NonNull Set<@NonNull ? extends TypeElement> annotations,
       final @NonNull RoundEnvironment roundEnv) {
-    final var specifications = roundEnv.getElementsAnnotatedWith(Queries.class);
-    final var interpreter = new QueriesDefinitionsInterpreter(this.processingEnv);
+    processSpecifications(roundEnv.getElementsAnnotatedWith(Queries.class));
+    return false;
+  }
+
+  private void processSpecifications(final @NonNull Set<@NonNull ? extends Element> specifications) {
+    if (!specifications.isEmpty()) {
+      generateCodeFor(queriesAt(specifications));
+    }
+  }
+
+  private @NonNull List<@NonNull QueriesAnnotatedInterface> queriesAt(final @NonNull Set<@NonNull ? extends Element> specifications) {
+    final var queriesParser = new QueriesDefinitionsParser(this.processingEnv);
 
     for (final var spec : specifications) {
       try {
-        interpreter.interpretQueriesAt(spec);
+        queriesParser.parseQueriesAt(spec);
       } catch (final IllegalQueriesDefinition failure) {
         error(failure.element, failure.getMessage());
       }
     }
 
-    final var codeBuilder = new Java21ImplementationCodeBuilder(this.processingEnv);
-    for (final var queries : interpreter.queries()) {
-      System.out.println(codeBuilder.getImplementationCodeFor(queries));
-    }
+    return queriesParser.queries();
+  }
 
-    return true;
+  private void generateCodeFor(final @NonNull List<@NonNull QueriesAnnotatedInterface> queries) {
+    if (!queries.isEmpty()) {
+      final var codeBuilder = new Java21ImplementationCodeBuilder(this.processingEnv);
+      for (final var q : queries) {
+        System.out.println(codeBuilder.getImplementationCodeFor(q));
+      }
+    }
   }
 
   void error(
       final @NonNull Element e,
       final @Nullable CharSequence message) {
-    final var errorMessage = message == null ? "" : message;
+    final var errorMessage = message == null ? "error found" : message;
     messager().printMessage(Diagnostic.Kind.ERROR, errorMessage, e);
   }
 

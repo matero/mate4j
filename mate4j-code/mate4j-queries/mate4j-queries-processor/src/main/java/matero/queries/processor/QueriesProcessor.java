@@ -26,15 +26,13 @@ package matero.queries.processor;
  * #L%
  */
 
-import matero.queries.MATCH;
+import com.google.auto.service.AutoService;
+import matero.queries.Query;
 import matero.queries.Queries;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
-import javax.annotation.processing.AbstractProcessor;
-import javax.annotation.processing.Messager;
-import javax.annotation.processing.RoundEnvironment;
-import javax.annotation.processing.SupportedSourceVersion;
+import javax.annotation.processing.*;
 import javax.lang.model.SourceVersion;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.TypeElement;
@@ -43,11 +41,12 @@ import java.util.List;
 import java.util.Set;
 
 @SupportedSourceVersion(SourceVersion.RELEASE_21)
+@AutoService(Processor.class)
 public class QueriesProcessor extends AbstractProcessor {
 
   @Override
   public @NonNull Set<@NonNull String> getSupportedAnnotationTypes() {
-    return Set.of(Queries.class.getCanonicalName(), MATCH.class.getCanonicalName());
+    return Set.of(Queries.class.getCanonicalName(), Query.class.getCanonicalName());
   }
 
   @Override
@@ -65,7 +64,7 @@ public class QueriesProcessor extends AbstractProcessor {
   }
 
   private @NonNull List<@NonNull QueriesAnnotatedInterface> queriesAt(final @NonNull Set<@NonNull ? extends Element> specifications) {
-    final var queriesParser = new QueriesDefinitionsParser(this.processingEnv);
+    final var queriesParser = new QueriesDefinitionsParser();
 
     for (final var spec : specifications) {
       try {

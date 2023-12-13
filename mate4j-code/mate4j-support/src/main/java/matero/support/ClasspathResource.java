@@ -1,8 +1,8 @@
-package matero.queries.processor;
+package matero.support;
 
 /*-
  * #%L
- * Mate4j/Code/Queries
+ * Mate4j/Fixtures
  * %%
  * Copyright (C) 2023 matero
  * %%
@@ -26,25 +26,42 @@ package matero.queries.processor;
  * #L%
  */
 
-import matero.queries.Query;
-import matero.queries.QueryType;
 import org.checkerframework.checker.nullness.qual.NonNull;
-import matero.queries.TransactionType;
+import org.checkerframework.checker.nullness.qual.Nullable;
 
-import javax.lang.model.element.ExecutableElement;
-import javax.lang.model.element.Name;
-import javax.lang.model.element.VariableElement;
-import javax.lang.model.type.TypeMirror;
-import java.util.List;
+import java.io.File;
+import java.nio.file.Path;
 
-record QueryMethod(
-    @NonNull Name name,
-    @NonNull TypeMirror returnType,
-    @NonNull List<@NonNull ? extends VariableElement> parameters,
-    @NonNull List<@NonNull ? extends TypeMirror> thrownTypes,
-    @NonNull String cypher,
+public final class ClasspathResource {
+  private ClasspathResource() {
+    throw new ClassNotInstantiable(ClasspathResource.class);
+  }
 
-    @NonNull QueryType queryType,
+  public static @Nullable Path path(final @NonNull String name) {
+    final var resource = classLoader().getResource(name);
+    if (resource == null) {
+      return null;
+    }
+    try {
+      return java.nio.file.Paths.get(resource.toURI());
+    } catch (final java.net.URISyntaxException e) {
+      throw new IllegalStateException("could not interpret resource URI as path", e);
+    }
+  }
 
-    @NonNull TransactionType txType) {
+  static @NonNull ClassLoader classLoader() {
+    final var classLoader = ClasspathResource.class.getClassLoader();
+    if (classLoader == null) {
+      throw new IllegalStateException("could not access classLoader");
+    }
+    return classLoader;
+  }
+
+  public static @Nullable File file(final @NonNull String name) {
+    final var path = path(name);
+    if (path == null) {
+      return null;
+    }
+    return path.toFile();
+  }
 }

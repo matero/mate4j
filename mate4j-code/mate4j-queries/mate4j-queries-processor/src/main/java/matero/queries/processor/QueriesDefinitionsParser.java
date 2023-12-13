@@ -26,107 +26,232 @@ package matero.queries.processor;
  * #L%
  */
 
-import matero.queries.MATCH;
 import matero.queries.Queries;
-import matero.queries.neo4j.CurrentSession;
+import matero.queries.Query;
+import matero.queries.QueryType;
+import matero.queries.TransactionType;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
-import javax.annotation.processing.ProcessingEnvironment;
 import javax.lang.model.element.*;
 import java.util.List;
-import java.util.TreeSet;
 
 final class QueriesDefinitionsParser {
-  private final @NonNull ProcessingEnvironment processingEnv;
   private final @NonNull List<@NonNull QueriesAnnotatedInterface> queries;
   private final @NonNull List<@NonNull QueryMethod> methods;
-  private final @NonNull TreeSet<@NonNull String> imports;
+  private final @NonNull ImportsParser importsParser;
 
-  public QueriesDefinitionsParser(final @NonNull ProcessingEnvironment processingEnv) {
-    this(processingEnv, new java.util.ArrayList<>(), new java.util.ArrayList<>(), new TreeSet<>());
+  QueriesDefinitionsParser() {
+    this(new java.util.ArrayList<>(), new java.util.ArrayList<>(), new ImportsParser());
   }
 
   QueriesDefinitionsParser(
-      final @NonNull ProcessingEnvironment processingEnv,
       final @NonNull List<@NonNull QueriesAnnotatedInterface> queries,
       final @NonNull List<@NonNull QueryMethod> methods,
-      final @NonNull TreeSet<@NonNull String> imports) {
-    this.processingEnv = processingEnv;
+      final @NonNull ImportsParser importsParser) {
     this.queries = queries;
     this.methods = methods;
-    this.imports = imports;
+    this.importsParser = importsParser;
   }
 
   void parseQueriesAt(final @NonNull Element spec) {
+    ensureThatIsInterface(spec);
+    ensureThatIsRootElement(spec);
+
+    prepareParsing();
+
+    parseRootInterfaceAt((@NonNull TypeElement) spec);
+  }
+
+  void ensureThatIsInterface(final @NonNull Element spec) {
     if (spec.getKind() != ElementKind.INTERFACE) {
       throw new IllegalQueriesDefinition(spec, "only root interfaces allowed to be annotated with @" + Queries.class.getCanonicalName());
     }
+  }
+
+  void ensureThatIsRootElement(final @NonNull Element spec) {
     if (spec.getEnclosingElement().getKind() != ElementKind.PACKAGE) {
       throw new IllegalQueriesDefinition(spec, "only root interfaces allowed to be annotated with @" + Queries.class.getCanonicalName());
     }
-
-    final var specType = (TypeElement) spec;
-
-    init();
-
-    for (final var enclosed : spec.getEnclosedElements()) {
-      if (enclosed.getKind() == ElementKind.METHOD) {
-        final var method = (ExecutableElement) enclosed;
-        if (isInstanceMethod(method)) {
-          this.methods.add(parseMethod(method));
-        }
-      }
-    }
-
-    this.queries.add(new QueriesAnnotatedInterface(specType, this.methods, this.imports));
   }
 
-  private void init() {
-    initImports();
-    initMethods();
+  private void prepareParsing() {
+    prepareImports();
+    prepareMethods();
   }
 
-  private void initImports() {
-    this.imports.clear();
-    this.imports.add(CurrentSession.class.getCanonicalName());
-    this.imports.add(Nullable.class.getCanonicalName());
-    this.imports.add(NonNull.class.getCanonicalName());
+  private void prepareImports() {
+    this.importsParser.prepare();
   }
 
-  private void initMethods() {
+  private void prepareMethods() {
     this.methods.clear();
   }
 
-  boolean isInstanceMethod(final @NonNull ExecutableElement method) {
-    return !method.getModifiers().contains(Modifier.STATIC);
+  void parseRootInterfaceAt(final @NonNull TypeElement spec) {
+    for (final var enclosed : spec.getEnclosedElements()) {
+      parseInterfaceElement(enclosed);
+    }
+    this.queries.add(new QueriesAnnotatedInterface(spec, this.methods, this.importsParser.getImports()));
   }
 
-  QueryMethod parseMethod(final @NonNull ExecutableElement method) {
-    if (method.isDefault()) {
-      throw new IllegalQueriesDefinition(method, "methods with default implementation are not allowed");
+  void parseInterfaceElement(final @NonNull Element e) {
+    if (e.getKind() == ElementKind.METHOD) {
+      parseInterfaceMethod((@NonNull ExecutableElement) e);
     }
+  }
 
-    if (!method.getTypeParameters().isEmpty()) {
-      throw new IllegalQueriesDefinition(method, "generic methods are not allowed");
+  void parseInterfaceMethod(final @NonNull ExecutableElement method) {
+    final var queryMethod = parseMethod(method);
+    if (queryMethod != null) {
+      this.methods.add(queryMethod);
     }
+  }
 
-    final var match = method.getAnnotation(MATCH.class);
-    if (match != null) {
-      ImportsParser.INSTANCE.visitMethod(method, this.imports);
+  @Nullable QueryMethod parseMethod(final @NonNull ExecutableElement method) {
+    final var query = getQuery(method);
+    if (query != null) {
+      ensureThat(method)
+          .isNotStatic()
+          .isNotGeneric()
+          .doesNotHaveDefaultImplementation();
+
+      final var cypher = getQueryCypher(method, query);
+      final var queryType = getQueryType(method, query, cypher);
+      final var txType = getTransactionType(method, query, queryType);
+
+      this.importsParser.parse(method);
+
       return new QueryMethod(
           method.getSimpleName(),
           method.getReturnType(),
           method.getParameters(),
           method.getThrownTypes(),
-          match.value(),
-          true);
+          cypher,
+          queryType,
+          txType);
+    }
+
+    return null; // method is not annotated -> it does not require to be registered
+  }
+
+  @NonNull TransactionType getTransactionType(
+      final @NonNull ExecutableElement method,
+      final @NonNull Query query,
+      final @NonNull QueryType queryType) {
+    final var txType = query.txType();
+    if (txType == TransactionType.UNKNOWN) {
+      return queryType.defaultTransactionType;
     } else {
-      throw new IllegalQueriesDefinition(method, "only cypher query methods can be defined as instance methods");
+      return txType;
+    }
+  }
+
+  private static @Nullable Query getQuery(final @NonNull ExecutableElement method) {
+    final var query = method.getAnnotation(Query.class);
+    if (query == null) {
+      return null;
+    }
+    final var undefinedValue = Query.is.undefined(query.value());
+    final var undefinedCypher = Query.is.undefined(query.cypher());
+    if (undefinedValue && undefinedCypher) {
+      throw new IllegalQueriesDefinition(method, "@" + Query.class.getCanonicalName() + " must have one of value() or cypher() configured, but none of them are");
+    }
+    if (!undefinedValue && !undefinedCypher) {
+      throw new IllegalQueriesDefinition(method, "@" + Query.class.getCanonicalName() + " must have one of value() or cypher() configured, but both of them are");
+    }
+    return query;
+  }
+
+  @NonNull String getQueryCypher(
+      final @NonNull ExecutableElement method,
+      final @NonNull Query query) {
+    if (Query.is.undefined(query.value())) {
+      return validateCypher(method, query.cypher(), "cypher");
+    } else {
+      return validateCypher(method, query.value(), "value");
+    }
+  }
+
+  @NonNull String validateCypher(
+      final @NonNull ExecutableElement method,
+      final @NonNull String cypher,
+      final @NonNull String property) {
+
+    if (cypher.isEmpty()) {
+      throw new IllegalQueriesDefinition(method, "@" + Query.class.getCanonicalName() + " can not have empty " + property);
+    }
+    if (cypher.isBlank()) {
+      throw new IllegalQueriesDefinition(method, "@" + Query.class.getCanonicalName() + " can not have blank " + property);
+    }
+    return cypher.trim();
+  }
+
+  @NonNull QueryType getQueryType(
+      final @NonNull ExecutableElement method,
+      final @NonNull Query query,
+      final @NonNull String cypher) {
+    final var type = query.queryType();
+    if (type == QueryType.UNKNOWN) {
+      return switch (cypher.charAt(0)) {
+        case 'C', 'c' -> switch (cypher.charAt(1)) {
+          case 'A', 'a' -> QueryType.CALL;
+          case 'R', 'r' -> QueryType.CREATE;
+          default -> throw new IllegalQueriesDefinition(method, "can not deduct type of statemente for '" + cypher + "'.");
+        };
+        case 'D', 'd' -> QueryType.DELETE;
+        case 'M', 'm' -> switch (cypher.charAt(1)) {
+          case 'A', 'a' -> QueryType.MATCH;
+          case 'E', 'e' -> QueryType.MERGE;
+          default -> throw new IllegalQueriesDefinition(method, "can not deduct type of statemente for '" + cypher + "'.");
+        };
+        case 'O', 'o' -> QueryType.OPTIONAL_MATCH;
+        default -> throw new IllegalQueriesDefinition(method, "can not deduct type of statemente for '" + cypher + "'.");
+      };
+    } else {
+      return type;
     }
   }
 
   public @NonNull List<@NonNull QueriesAnnotatedInterface> queries() {
     return java.util.Collections.unmodifiableList(this.queries);
+  }
+
+  @NonNull QueryMethodPreconditions ensureThat(final @NonNull ExecutableElement method) {
+    return new QueryMethodPreconditions(method);
+  }
+
+  static final class QueryMethodPreconditions {
+    private final @NonNull ExecutableElement method;
+
+    QueryMethodPreconditions(final @NonNull ExecutableElement method) {
+      this.method = method;
+    }
+
+
+    @NonNull QueryMethodPreconditions isNotStatic() {
+      if (this.method.getModifiers().contains(Modifier.STATIC)) {
+        throw invalidQueryMethod("static methods are not allowed");
+      }
+      return this;
+    }
+
+    @NonNull QueryMethodPreconditions isNotGeneric() {
+      if (!this.method.getTypeParameters().isEmpty()) {
+        throw invalidQueryMethod("generic methods are not allowed");
+      }
+      return this;
+    }
+
+    @NonNull QueryMethodPreconditions doesNotHaveDefaultImplementation() {
+      if (this.method.isDefault()) {
+        throw invalidQueryMethod("methods with default implementation are not allowed");
+      }
+      return this;
+    }
+
+    @NonNull IllegalQueriesDefinition invalidQueryMethod(final @NonNull String message) {
+      return new IllegalQueriesDefinition(this.method, message);
+    }
   }
 }

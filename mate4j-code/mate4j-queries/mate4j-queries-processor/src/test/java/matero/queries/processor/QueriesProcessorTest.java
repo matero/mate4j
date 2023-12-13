@@ -77,7 +77,7 @@ public class QueriesProcessorTest {
             import org.checkerframework.checker.index.qual.Positive;
 
             import matero.queries.Queries;
-            import matero.queries.MATCH;
+            import matero.queries.Query;
             import matero.queries.Alias;
                         
             import java.util.List;
@@ -88,7 +88,7 @@ public class QueriesProcessorTest {
                                                              
             @Queries
             public interface Players {
-              @MATCH("MATCH (p:Player {id: ${playerId}) RETURN p IS NOT NULL")
+              @Query("MATCH (p:Player {id: ${playerId}) RETURN p IS NOT NULL")
               boolean existsPlayerWithId(long id)
                   throws EntityNotFoundException;
             }"""));

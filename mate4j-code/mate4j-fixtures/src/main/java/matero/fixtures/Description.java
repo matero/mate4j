@@ -1,8 +1,8 @@
-package matero.queries.processor;
+package matero.fixtures;
 
 /*-
  * #%L
- * Mate4j/Code/Queries
+ * Mate4j/Fixtures
  * %%
  * Copyright (C) 2023 matero
  * %%
@@ -26,25 +26,41 @@ package matero.queries.processor;
  * #L%
  */
 
-import matero.queries.Query;
-import matero.queries.QueryType;
 import org.checkerframework.checker.nullness.qual.NonNull;
-import matero.queries.TransactionType;
+import org.checkerframework.checker.nullness.qual.Nullable;
 
-import javax.lang.model.element.ExecutableElement;
-import javax.lang.model.element.Name;
-import javax.lang.model.element.VariableElement;
-import javax.lang.model.type.TypeMirror;
-import java.util.List;
+/**
+ * Text describing something.
+ * <p/>
+ * As its defined to document intentions of configuration options, it can not be checked, or any other string
+ * operation ;).
+ */
+final class Description {
+  /**
+   * Text used to describe something.
+   */
+  private final @NonNull String value;
 
-record QueryMethod(
-    @NonNull Name name,
-    @NonNull TypeMirror returnType,
-    @NonNull List<@NonNull ? extends VariableElement> parameters,
-    @NonNull List<@NonNull ? extends TypeMirror> thrownTypes,
-    @NonNull String cypher,
+  private Description(final @NonNull String value) {
+    this.value = value;
+  }
 
-    @NonNull QueryType queryType,
+  @Override
+  public boolean equals(final @Nullable Object o) {
+    return (this == o) || (o instanceof Description other && this.value.equals(other.value));
+  }
 
-    @NonNull TransactionType txType) {
+  @Override
+  public int hashCode() {
+    return this.value.hashCode();
+  }
+
+  @Override
+  public String toString() {
+    return this.value;
+  }
+
+  static @NonNull Description of(final @NonNull String s) {
+    return new Description(s);
+  }
 }

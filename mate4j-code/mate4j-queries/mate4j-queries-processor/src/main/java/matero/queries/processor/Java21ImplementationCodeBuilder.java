@@ -73,7 +73,7 @@ final class Java21ImplementationCodeBuilder implements ImplementationCodeBuilder
 
   @Override
   public @NonNull String getImplementationCodeFor(final @NonNull QueriesAnnotatedInterface queries) {
-    return STR. """
+    return "";/*STR. """
         package \{ queries.packageName() };
 
         \{ queries.imports().stream().map(it -> "import " + it + ';').collect(joining("\n")) }
@@ -87,22 +87,22 @@ final class Java21ImplementationCodeBuilder implements ImplementationCodeBuilder
           \{ queries.methods().stream().map(this::buildMethodCodeFor).collect(joining("\n")) }
         }
 
-        """ ;
+        """ ;*/
   }
 
   @NonNull
   String buildMethodCodeFor(final @NonNull QueryMethod method) {
-    return STR. """
+    return ""; /*STR. """
         \{ annotationsOf(method) } public \{ returnTypeOf(method) } \{ method.name() }(\{ parametersOf(method) }) \{ throwsOf(method) } {
           final var __queryParameters = Map.<@NonNull String, @Nullable Object>of(\{ queryParametersOf(method) });
 
           return CurrentSession.get()
-            .\{ executionOf(method) }(tx -> {
+            .\{ method.txType().executorMethod }(tx -> {
               final var result = tx.run(\{ cypherOf(method) }, __queryParameters);
               \{ processResultOf(method) }
             });
         }
-        """ ;
+        """ ;*/
   }
 
   @NonNull
@@ -191,14 +191,6 @@ final class Java21ImplementationCodeBuilder implements ImplementationCodeBuilder
       return parameter.getSimpleName().toString();
     } else {
       return alias.value();
-    }
-  }
-
-  private Object executionOf(final @NonNull QueryMethod method) {
-    if (method.read()) {
-      return "executeRead";
-    } else {
-      return "executeWrite";
     }
   }
 

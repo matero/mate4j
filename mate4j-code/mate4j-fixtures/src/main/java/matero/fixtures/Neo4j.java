@@ -1,8 +1,8 @@
-package matero.queries.processor;
+package matero.fixtures;
 
 /*-
  * #%L
- * Mate4j/Code/Queries
+ * Mate4j/Fixtures
  * %%
  * Copyright (C) 2023 matero
  * %%
@@ -26,25 +26,41 @@ package matero.queries.processor;
  * #L%
  */
 
-import matero.queries.Query;
-import matero.queries.QueryType;
+import matero.support.ClassNotInstantiable;
 import org.checkerframework.checker.nullness.qual.NonNull;
-import matero.queries.TransactionType;
+import org.checkerframework.checker.nullness.qual.Nullable;
+import org.neo4j.driver.Session;
+import org.neo4j.driver.Transaction;
 
-import javax.lang.model.element.ExecutableElement;
-import javax.lang.model.element.Name;
-import javax.lang.model.element.VariableElement;
-import javax.lang.model.type.TypeMirror;
-import java.util.List;
+import java.lang.annotation.*;
 
-record QueryMethod(
-    @NonNull Name name,
-    @NonNull TypeMirror returnType,
-    @NonNull List<@NonNull ? extends VariableElement> parameters,
-    @NonNull List<@NonNull ? extends TypeMirror> thrownTypes,
-    @NonNull String cypher,
+public final class Neo4j {
+  final static ScopedValue<Session> SESSION = ScopedValue.newInstance();
+  final static ScopedValue<Transaction> TX = ScopedValue.newInstance();
 
-    @NonNull QueryType queryType,
+  private Neo4j() {
+    throw new ClassNotInstantiable(Neo4j.class);
+  }
 
-    @NonNull TransactionType txType) {
+  public static @Nullable Session session() {
+    return SESSION.get();
+  }
+
+  public static @Nullable Transaction tx() {
+    return TX.get();
+  }
+
+  @Retention(RetentionPolicy.RUNTIME)
+  @Target({ElementType.TYPE, ElementType.METHOD})
+  @Documented
+  @Inherited
+  public @interface Fixture {
+    String @NonNull [] UNDEFINED = {};
+
+    @NonNull String @NonNull [] value() default {};
+
+    @NonNull String @NonNull [] load() default {};
+
+    boolean show() default false;
+  }
 }

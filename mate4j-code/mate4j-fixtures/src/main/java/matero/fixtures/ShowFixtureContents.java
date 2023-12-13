@@ -1,8 +1,8 @@
-package matero.queries.processor;
+package matero.fixtures;
 
 /*-
  * #%L
- * Mate4j/Code/Queries
+ * Mate4j/Fixtures
  * %%
  * Copyright (C) 2023 matero
  * %%
@@ -26,25 +26,33 @@ package matero.queries.processor;
  * #L%
  */
 
-import matero.queries.Query;
-import matero.queries.QueryType;
-import org.checkerframework.checker.nullness.qual.NonNull;
-import matero.queries.TransactionType;
+import matero.fixtures.Neo4j.Fixture;
+import matero.support.ClassNotInstantiable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 
-import javax.lang.model.element.ExecutableElement;
-import javax.lang.model.element.Name;
-import javax.lang.model.element.VariableElement;
-import javax.lang.model.type.TypeMirror;
-import java.util.List;
+import java.lang.reflect.AnnotatedElement;
+import java.lang.reflect.Method;
 
-record QueryMethod(
-    @NonNull Name name,
-    @NonNull TypeMirror returnType,
-    @NonNull List<@NonNull ? extends VariableElement> parameters,
-    @NonNull List<@NonNull ? extends TypeMirror> thrownTypes,
-    @NonNull String cypher,
+final class ShowFixtureContents {
+  private ShowFixtureContents() {
+    throw new ClassNotInstantiable(ShowFixtureContents.class);
+  }
 
-    @NonNull QueryType queryType,
-
-    @NonNull TransactionType txType) {
+  static @Nullable Boolean of(final @Nullable AnnotatedElement e) {
+    if (e == null) {
+      return null;
+    }
+    var fixtures = e.getAnnotation(Fixture.class);
+    if (fixtures == null) {
+      if (e instanceof Method m) {
+        return of(m.getDeclaringClass());
+      } else if (e instanceof Class<?> c) {
+        return of(c.getDeclaringClass());
+      }
+      throw new IllegalArgumentException("only methods and classes are accepted, but received " + e);
+    } else {
+      return fixtures.show();
+    }
+  }
 }
+

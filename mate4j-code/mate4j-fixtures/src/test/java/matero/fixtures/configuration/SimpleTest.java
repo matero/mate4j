@@ -1,8 +1,8 @@
-package matero.queries.processor;
+package matero.fixtures.configuration;
 
 /*-
  * #%L
- * Mate4j/Code/Queries
+ * Mate4j/Fixtures
  * %%
  * Copyright (C) 2023 matero
  * %%
@@ -26,25 +26,34 @@ package matero.queries.processor;
  * #L%
  */
 
-import matero.queries.Query;
-import matero.queries.QueryType;
-import org.checkerframework.checker.nullness.qual.NonNull;
-import matero.queries.TransactionType;
+import matero.fixtures.Neo4j;
+import matero.fixtures.Neo4jFixtures;
+import matero.fixtures.Neo4jFixturesExtension;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 
-import javax.lang.model.element.ExecutableElement;
-import javax.lang.model.element.Name;
-import javax.lang.model.element.VariableElement;
-import javax.lang.model.type.TypeMirror;
-import java.util.List;
+@Neo4jFixtures(settings = SingletonInternalDbWithRollbackPerTestMethod.class)
+@ExtendWith(Neo4jFixturesExtension.class)
+public class SimpleTest {
+  @Test
+  void classFixture() {
+    assert Neo4j.session() != null;
+  }
 
-record QueryMethod(
-    @NonNull Name name,
-    @NonNull TypeMirror returnType,
-    @NonNull List<@NonNull ? extends VariableElement> parameters,
-    @NonNull List<@NonNull ? extends TypeMirror> thrownTypes,
-    @NonNull String cypher,
+  @Test
+  void defaultTestFixture() {
+    assert Neo4j.session() != null;
+  }
 
-    @NonNull QueryType queryType,
+  @Test
+  @Neo4j.Fixture("configuredFixture")
+  void configuredTestFixtureWithValue() {
+    assert Neo4j.session() != null;
+  }
 
-    @NonNull TransactionType txType) {
+  @Test
+  @Neo4j.Fixture(load = "configuredFixture", show = true)
+  void configuredTestFixtureWithLoad() {
+    assert Neo4j.session() != null;
+  }
 }

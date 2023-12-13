@@ -1,8 +1,8 @@
-package matero.queries.processor;
+package matero.support;
 
 /*-
  * #%L
- * Mate4j/Code/Queries
+ * Mate4j/Fixtures
  * %%
  * Copyright (C) 2023 matero
  * %%
@@ -26,25 +26,12 @@ package matero.queries.processor;
  * #L%
  */
 
-import matero.queries.Query;
-import matero.queries.QueryType;
-import org.checkerframework.checker.nullness.qual.NonNull;
-import matero.queries.TransactionType;
-
-import javax.lang.model.element.ExecutableElement;
-import javax.lang.model.element.Name;
-import javax.lang.model.element.VariableElement;
-import javax.lang.model.type.TypeMirror;
-import java.util.List;
-
-record QueryMethod(
-    @NonNull Name name,
-    @NonNull TypeMirror returnType,
-    @NonNull List<@NonNull ? extends VariableElement> parameters,
-    @NonNull List<@NonNull ? extends TypeMirror> thrownTypes,
-    @NonNull String cypher,
-
-    @NonNull QueryType queryType,
-
-    @NonNull TransactionType txType) {
+/**
+ * Denotes a class is not instantiable
+ */
+public final class ClassNotInstantiable
+    extends RuntimeException {
+  public ClassNotInstantiable(final Class<?> aClass) {
+    super(aClass + " is not instantiable!");
+  }
 }

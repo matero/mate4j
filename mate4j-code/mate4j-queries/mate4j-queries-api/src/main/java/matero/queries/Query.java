@@ -1,4 +1,4 @@
-package matero.queries.processor;
+package matero.queries;
 
 /*-
  * #%L
@@ -26,25 +26,31 @@ package matero.queries.processor;
  * #L%
  */
 
-import matero.queries.Query;
-import matero.queries.QueryType;
+import matero.support.ClassNotInstantiable;
 import org.checkerframework.checker.nullness.qual.NonNull;
-import matero.queries.TransactionType;
 
-import javax.lang.model.element.ExecutableElement;
-import javax.lang.model.element.Name;
-import javax.lang.model.element.VariableElement;
-import javax.lang.model.type.TypeMirror;
-import java.util.List;
+import java.lang.annotation.*;
 
-record QueryMethod(
-    @NonNull Name name,
-    @NonNull TypeMirror returnType,
-    @NonNull List<@NonNull ? extends VariableElement> parameters,
-    @NonNull List<@NonNull ? extends TypeMirror> thrownTypes,
-    @NonNull String cypher,
+@Target(ElementType.METHOD)
+@Retention(RetentionPolicy.SOURCE)
+@Documented
+@Inherited
+public @interface Query {
+  @NonNull String value() default is.UNDEFINED;
 
-    @NonNull QueryType queryType,
+  @NonNull String cypher() default is.UNDEFINED;
 
-    @NonNull TransactionType txType) {
+  @NonNull QueryType queryType() default QueryType.UNKNOWN;
+
+  @NonNull TransactionType txType() default TransactionType.UNKNOWN;
+
+  final class is {
+    private static final String UNDEFINED = "<__UNDEFINED__>";
+
+    private is() {throw new ClassNotInstantiable(is.class);
+    }
+    public static boolean undefined(final @NonNull String s) {
+      return UNDEFINED.equals(s);
+    }
+  }
 }

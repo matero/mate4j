@@ -1,0 +1,1 @@
+CREATE (n:Test {id: 2, name: 'default-test-fixture'})

@@ -1,8 +1,8 @@
-package matero.queries.processor;
+package matero.queries;
 
 /*-
  * #%L
- * Mate4j/Code/Queries
+ * mate4j-queries-api
  * %%
  * Copyright (C) 2023 matero
  * %%
@@ -12,10 +12,10 @@ package matero.queries.processor;
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- *
+ * 
  * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
- *
+ * 
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -26,25 +26,23 @@ package matero.queries.processor;
  * #L%
  */
 
-import matero.queries.Query;
-import matero.queries.QueryType;
 import org.checkerframework.checker.nullness.qual.NonNull;
-import matero.queries.TransactionType;
 
 import javax.lang.model.element.ExecutableElement;
-import javax.lang.model.element.Name;
-import javax.lang.model.element.VariableElement;
-import javax.lang.model.type.TypeMirror;
-import java.util.List;
 
-record QueryMethod(
-    @NonNull Name name,
-    @NonNull TypeMirror returnType,
-    @NonNull List<@NonNull ? extends VariableElement> parameters,
-    @NonNull List<@NonNull ? extends TypeMirror> thrownTypes,
-    @NonNull String cypher,
+public enum QueryType {
+  MATCH(TransactionType.READ),
+  OPTIONAL_MATCH(TransactionType.READ),
+  CALL(TransactionType.READ),
+  CREATE(TransactionType.WRITE),
+  MERGE(TransactionType.WRITE),
+  DELETE(TransactionType.WRITE),
+  UNKNOWN(TransactionType.READ);
 
-    @NonNull QueryType queryType,
+  public final @NonNull TransactionType defaultTransactionType;
 
-    @NonNull TransactionType txType) {
+  QueryType(final @NonNull TransactionType defaultTransactionType) {
+    this.defaultTransactionType = defaultTransactionType;
+  }
+
 }

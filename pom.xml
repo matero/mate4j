@@ -59,13 +59,13 @@
         <plugin>
           <artifactId>maven-clean-plugin</artifactId>
           <groupId>org.apache.maven.plugins</groupId>
-          <version>3.2.0</version>
+          <version>3.3.2</version>
         </plugin>
 
         <plugin>
           <artifactId>maven-resources-plugin</artifactId>
           <groupId>org.apache.maven.plugins</groupId>
-          <version>3.3.0</version>
+          <version>3.3.1</version>
         </plugin>
 
         <plugin>
@@ -77,27 +77,63 @@
         <plugin>
           <artifactId>maven-install-plugin</artifactId>
           <groupId>org.apache.maven.plugins</groupId>
-          <version>3.1.0</version>
+          <version>3.1.1</version>
         </plugin>
 
         <plugin>
           <artifactId>maven-deploy-plugin</artifactId>
           <groupId>org.apache.maven.plugins</groupId>
-          <version>3.0.0</version>
+          <version>3.1.1</version>
         </plugin>
 
         <plugin>
           <artifactId>maven-site-plugin</artifactId>
           <groupId>org.apache.maven.plugins</groupId>
-          <version>4.0.0-M4</version>
+          <version>4.0.0-M12</version>
         </plugin>
 
         <plugin>
           <artifactId>maven-project-info-reports-plugin</artifactId>
           <groupId>org.apache.maven.plugins</groupId>
-          <version>3.4.1</version>
+          <version>3.5.0</version>
         </plugin>
       </plugins>
     </pluginManagement>
+
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-enforcer-plugin</artifactId>
+        <version>3.4.1</version>
+        <executions>
+          <execution>
+            <id>enforce-maven</id>
+            <goals>
+              <goal>enforce</goal>
+            </goals>
+            <configuration>
+              <rules>
+                <requireMavenVersion>
+                  <version>3.8.5</version>
+                </requireMavenVersion>
+
+                <!-- https://www.mojohaus.org/versions/versions-enforcer/index.html -->
+                <maxDependencyUpdates>
+                  <maxUpdates>20</maxUpdates>
+                  <ignoreSubIncrementalUpdates>true</ignoreSubIncrementalUpdates>
+                </maxDependencyUpdates>
+              </rules>
+            </configuration>
+          </execution>
+        </executions>
+        <dependencies>
+          <dependency>
+            <groupId>org.codehaus.mojo.versions</groupId>
+            <artifactId>versions-enforcer</artifactId>
+            <version>2.16.2</version>
+          </dependency>
+        </dependencies>
+      </plugin>
+    </plugins>
   </build>
 </project>

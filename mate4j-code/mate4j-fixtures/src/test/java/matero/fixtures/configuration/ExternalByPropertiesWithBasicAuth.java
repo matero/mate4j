@@ -1,8 +1,8 @@
-package matero.queries;
+package matero.fixtures.configuration;
 
 /*-
  * #%L
- * Mate4j/Code/Queries
+ * Mate4j/Fixtures
  * %%
  * Copyright (C) 2023 matero
  * %%
@@ -26,15 +26,15 @@ package matero.queries;
  * #L%
  */
 
-import org.checkerframework.checker.nullness.qual.NonNull;
+import matero.fixtures.Neo4jFixturesSettings;
 
-import java.lang.annotation.*;
-
-@Target(ElementType.METHOD)
-@Retention(RetentionPolicy.SOURCE)
-@Documented
-@Inherited
-public @interface MATCH {
-
-  @NonNull String value();
+public class ExternalByPropertiesWithBasicAuth
+    extends Neo4jFixturesSettings {
+  @Override
+  public void configure() {
+    external()
+        .basicAuth("neo4j", "1234")
+        .host("127.0.0.1")
+        .port(1111);
+  }
 }

@@ -2,7 +2,7 @@ package matero.queries.processor;
 
 /*-
  * #%L
- * Mate4j/Code/Queries
+ * mate4j-queries-processor
  * %%
  * Copyright (C) 2023 matero
  * %%
@@ -12,10 +12,10 @@ package matero.queries.processor;
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- *
+ * 
  * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
- *
+ * 
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -27,42 +27,35 @@ package matero.queries.processor;
  */
 
 import org.checkerframework.checker.nullness.qual.NonNull;
-import org.checkerframework.checker.nullness.qual.Nullable;
 
-import javax.lang.model.element.PackageElement;
-import javax.lang.model.element.TypeElement;
-import java.util.Collection;
-import java.util.List;
+class QueryMethodParameter {
+  private final @NonNull String name;
+  private final @NonNull String alias;
+  private final @NonNull String type;
 
-final class QueriesAnnotatedInterface {
-  final @NonNull TypeElement target;
-  final @NonNull List<@NonNull QueryMethod> methods;
+  QueryMethodParameter(
+      final @NonNull String name,
+      final @NonNull String alias,
+      final @NonNull String type) {
+    this.name = name;
+    this.alias = alias;
+    this.type = type;
+  }
 
-  final @NonNull List<@NonNull String> imports;
+  public @NonNull String getName() {
+    return this.name;
+  }
 
-  QueriesAnnotatedInterface(
-      final @NonNull TypeElement target,
-      final @NonNull Collection<QueryMethod> methods,
-      final @NonNull Collection<@NonNull String> imports) {
-    this.target = target;
-    this.methods = List.copyOf(methods);
-    this.imports = List.copyOf(imports);
+  public @NonNull String getAlias() {
+    return this.alias;
+  }
+
+  public @NonNull String getType() {
+    return this.type;
   }
 
   @Override
-  public boolean equals(final @Nullable Object o) {
-    return (this == o) || (o instanceof QueriesAnnotatedInterface other && this.target.equals(other.target));
+  public String toString() {
+    return "QueryMethodParameter(name='" + this.name + "', alias='" + this.alias + "', type='" + this.type + "')";
   }
-
-  @Override
-  public int hashCode() {
-    return this.target.hashCode();
-  }
-
-  @Override
-  public @NonNull String toString() {
-    return "QueriesAnnotatedInterface(target=" + this.target + ')';
-  }
-
-  PackageElement getPackage() {return (PackageElement) this.target.getEnclosingElement();}
 }

@@ -26,25 +26,26 @@ package matero.queries.processor;
  * #L%
  */
 
-import matero.queries.Query;
 import matero.queries.QueryType;
-import org.checkerframework.checker.nullness.qual.NonNull;
 import matero.queries.TransactionType;
+import org.checkerframework.checker.nullness.qual.NonNull;
 
 import javax.lang.model.element.ExecutableElement;
-import javax.lang.model.element.Name;
-import javax.lang.model.element.VariableElement;
-import javax.lang.model.type.TypeMirror;
-import java.util.List;
 
-record QueryMethod(
-    @NonNull Name name,
-    @NonNull TypeMirror returnType,
-    @NonNull List<@NonNull ? extends VariableElement> parameters,
-    @NonNull List<@NonNull ? extends TypeMirror> thrownTypes,
-    @NonNull String cypher,
+final class QueryMethod {
+   final @NonNull ExecutableElement method;
+   final @NonNull String cypher;
+   final @NonNull QueryType queryType;
+   final @NonNull TransactionType txType;
 
-    @NonNull QueryType queryType,
-
-    @NonNull TransactionType txType) {
+  QueryMethod(
+      final @NonNull ExecutableElement method,
+      final @NonNull String cypher,
+      final @NonNull QueryType queryType,
+      final @NonNull TransactionType txType) {
+    this.method = method;
+    this.cypher = cypher;
+    this.queryType = queryType;
+    this.txType = txType;
+  }
 }

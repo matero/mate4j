@@ -1,0 +1,1 @@
+declareMethodParameter(p) ::= "final <p.type> <p.name>"

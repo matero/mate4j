@@ -33,6 +33,7 @@ import matero.queries.TransactionType;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import javax.annotation.processing.ProcessingEnvironment;
 import javax.lang.model.element.*;
 import java.util.List;
 
@@ -40,6 +41,8 @@ final class QueriesDefinitionsParser {
   private final @NonNull List<@NonNull QueriesAnnotatedInterface> queries;
   private final @NonNull List<@NonNull QueryMethod> methods;
   private final @NonNull ImportsParser importsParser;
+
+  private final @NonNull StringBuilder sb = new StringBuilder();
 
   QueriesDefinitionsParser() {
     this(new java.util.ArrayList<>(), new java.util.ArrayList<>(), new ImportsParser());
@@ -123,10 +126,7 @@ final class QueriesDefinitionsParser {
       this.importsParser.parse(method);
 
       return new QueryMethod(
-          method.getSimpleName(),
-          method.getReturnType(),
-          method.getParameters(),
-          method.getThrownTypes(),
+          method,
           cypher,
           queryType,
           txType);

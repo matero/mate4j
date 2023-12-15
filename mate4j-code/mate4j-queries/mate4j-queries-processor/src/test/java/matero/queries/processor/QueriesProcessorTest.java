@@ -27,6 +27,8 @@ package matero.queries.processor;
  */
 
 import com.google.testing.compile.JavaFileObjects;
+import matero.queries.Query;
+import matero.queries.TransactionType;
 import org.junit.jupiter.api.Test;
 
 import java.util.Map;
@@ -81,11 +83,15 @@ public class QueriesProcessorTest {
                                                              
             @Queries
             public interface Players {
-              @Query("MATCH (p:Player {id: ${playerId}) RETURN p IS NOT NULL")
+              @Query("MATCH (p:Player {id: $id}) RETURN p IS NOT NULL")
               boolean existsPlayerWithId(long id)
                   throws EntityNotFoundException;
-              @Query("MATCH (p:Player {id: ${playerId}) RETURN p IS NOT NULL")
-              @NonNull Node get(@NonNull int id, @Nullable @Alias("names") Set<@NonNull String> peperino) throws NullPointerException, EntityNotFoundException;
+              
+              @Query(cypher = \"\"\"
+                MATCH (n:Player)
+                WHERE n.id = $playerId
+                DETACH DELETE n\"\"\", txType = TransactionType.WRITE)
+              void delete(@NonNull @Alias("playerId") int id) throws NullPointerException, EntityNotFoundException;
             }"""));
     assertThat(compilation)
         .succeeded();

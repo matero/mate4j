@@ -1,3 +1,4 @@
 declareThrows(m) ::= <<
-<if (m.declareThrows)> throws <m.exceptions; separator=", "><endif>
+<if (m.declareThrows)>
+throws <m.exceptions; separator=",\n       "><endif>
 >>

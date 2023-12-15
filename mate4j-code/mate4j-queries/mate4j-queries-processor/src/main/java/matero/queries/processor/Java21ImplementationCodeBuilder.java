@@ -91,18 +91,6 @@ final class Java21ImplementationCodeBuilder implements ImplementationCodeBuilder
   }
 
   @NonNull
-  String buildMethodCodeFor(final @NonNull QueryMethod method) {
-    return ""; /*STR. """
-          return CurrentSession.get()
-            .\{ method.txType().executorMethod }(tx -> {
-              final var result = tx.run(\{ cypherOf(method) }, __queryParameters);
-              \{ processResultOf(method) }
-            });
-        """ ;*/
-  }
-
-
-  @NonNull
   String cypherOf(final @NonNull QueryMethod method) {
     final var cypher = method.cypher.trim();
 
@@ -191,7 +179,11 @@ final class Java21ImplementationCodeBuilder implements ImplementationCodeBuilder
             .collect(Collectors.toList()),
         m.method.getThrownTypes().stream()
             .map(it -> ((DeclaredType) it).asElement().getSimpleName().toString())
-            .collect(Collectors.toList())
+            .collect(Collectors.toList()),
+        m.txType.executorMethod,
+        m.cypher,
+        !(isVoid(m) || isVoidWrapper.apply(m.method.getReturnType())),
+        isVoidWrapper.apply(m.method.getReturnType())
     );
   }
 
@@ -203,18 +195,42 @@ final class Java21ImplementationCodeBuilder implements ImplementationCodeBuilder
 
     public final @NonNull List<@NonNull String> exceptions;
 
+    public final @NonNull String executor;
+    private final @NonNull String cypher;
+
+    public final boolean returnsValue;
+    public final boolean returnsNull;
+
     MethodSpec(
         final @NonNull String returnType,
         final @NonNull String name,
         final @NonNull List<@NonNull ParameterSpec> parameters,
-        final @NonNull List<@NonNull String> exceptions) {
+        final @NonNull List<@NonNull String> exceptions,
+        final @NonNull String executor,
+        final @NonNull String cypher,
+        final boolean returnsValue,
+        final boolean returnsNull) {
       this.returnType = returnType;
       this.name = name;
       this.parameters = parameters;
       this.exceptions = exceptions;
+      this.executor = executor;
+      this.cypher = cypher;
+      this.returnsValue = returnsValue;
+      this.returnsNull = returnsNull;
     }
 
-    public boolean isDeclareThrows() {return !this.exceptions.isEmpty();}
+    public boolean isDeclareThrows() {
+      return !this.exceptions.isEmpty();
+    }
+
+    public @NonNull String getCypher() {
+      if (this.cypher.contains("\n")) {
+        return "\"\"\"\n" + this.cypher + "\n\"\"\"";
+      } else {
+        return '"' + this.cypher + '"';
+      }
+    }
   }
 
   @NonNull ParameterSpec asParameterSpec(final @NonNull VariableElement parameter) {
@@ -227,6 +243,7 @@ final class Java21ImplementationCodeBuilder implements ImplementationCodeBuilder
         this.parameterValueMapper.getMapperOf(parameter)
     );
   }
+
   @NonNull
   String aliasOf(final @NonNull Element parameter) {
     final var alias = parameter.getAnnotation(Alias.class);
@@ -244,6 +261,7 @@ final class Java21ImplementationCodeBuilder implements ImplementationCodeBuilder
     public final @NonNull String alias;
 
     public final @NonNull String value;
+
     ParameterSpec(
         final @NonNull String type,
         final @NonNull String name,

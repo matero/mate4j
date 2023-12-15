@@ -71,19 +71,12 @@ public class QueriesProcessorTest {
         .compile(JavaFileObjects.forSourceString("sample.queries.Players", """
             package sample.queries;
                                                
-            import org.checkerframework.checker.nullness.qual.NonNull;
-            import org.checkerframework.checker.nullness.qual.Nullable;
-            import org.checkerframework.checker.index.qual.Positive;
-
-            import matero.queries.Queries;
-            import matero.queries.Query;
-            import matero.queries.Alias;
-                        
-            import java.util.List;
-            import java.util.Set;
+            import org.checkerframework.checker.nullness.qual.*;
+            import matero.queries.*;
+            import java.util.*;
             import java.util.concurrent.atomic.AtomicBoolean;
     
-            import org.neo4j.graphdb.Node;                   
+            import org.neo4j.graphdb.Node;
             import org.neo4j.exceptions.EntityNotFoundException;
                                                              
             @Queries
@@ -92,7 +85,7 @@ public class QueriesProcessorTest {
               boolean existsPlayerWithId(long id)
                   throws EntityNotFoundException;
               @Query("MATCH (p:Player {id: ${playerId}) RETURN p IS NOT NULL")
-              @NonNull Node get(@NonNull Long id, @Nullable List<@NonNull String> peperino) throws NullPointerException, EntityNotFoundException;
+              @NonNull Node get(@NonNull int id, @Nullable @Alias("names") Set<@NonNull String> peperino) throws NullPointerException, EntityNotFoundException;
             }"""));
     assertThat(compilation)
         .succeeded();

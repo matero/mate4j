@@ -40,15 +40,17 @@ import javax.lang.model.type.TypeMirror;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
 final class Java21ImplementationCodeBuilder implements ImplementationCodeBuilder {
   private final @NonNull String date;
-  private final @NonNull ValueTypes valueTypes;
   private final @NonNull ResultProcessor resultProcessor;
 
   private final @NonNull Function<@NonNull TypeMirror, @NonNull Boolean> isVoidWrapper;
+
+  private final @NonNull ParameterValueMapper parameterValueMapper;
   private final @NonNull STGroup templates;
   private final @NonNull StringBuilder sb;
 
@@ -63,13 +65,21 @@ final class Java21ImplementationCodeBuilder implements ImplementationCodeBuilder
       final @NonNull ProcessingEnvironment processingEnv) {
     this.date = date;
     final var types = processingEnv.getTypeUtils();
-    this.valueTypes = new ValueTypes(processingEnv);
     final var voidWrapper = processingEnv.getElementUtils().getTypeElement(Void.class.getCanonicalName()).asType();
     this.isVoidWrapper = (t) -> types.isSameType(t, voidWrapper);
     this.resultProcessor = new ResultProcessor();
 
     this.templates = new STGroupDir("templates/java21");
     this.sb = new StringBuilder();
+
+    final var elements = processingEnv.getElementUtils();
+
+    this.parameterValueMapper = new ParameterValueMapper(
+        types,
+        elements.getTypeElement(java.util.Collection.class.getCanonicalName()),
+        elements.getTypeElement(java.util.List.class.getCanonicalName()),
+        elements.getTypeElement(Map.class.getCanonicalName())
+    );
   }
 
   @Override
@@ -83,82 +93,14 @@ final class Java21ImplementationCodeBuilder implements ImplementationCodeBuilder
   @NonNull
   String buildMethodCodeFor(final @NonNull QueryMethod method) {
     return ""; /*STR. """
-        \{ annotationsOf(method) } public \{ returnTypeOf(method) } \{ method.name() }(\{ parametersOf(method) }) \{ throwsOf(method) } {
-          final var __queryParameters = Map.<@NonNull String, @Nullable Object>of(\{ queryParametersOf(method) });
-
           return CurrentSession.get()
             .\{ method.txType().executorMethod }(tx -> {
               final var result = tx.run(\{ cypherOf(method) }, __queryParameters);
               \{ processResultOf(method) }
             });
-        }
         """ ;*/
   }
 
-  @NonNull
-  String annotationsOf(final @NonNull QueryMethod method) {
-    return "@Override ";
-  }
-
-  @NonNull
-  String returnTypeOf(final @NonNull QueryMethod method) {
-    return method.method.getReturnType().toString();
-  }
-
-  @NonNull
-  String throwsOf(final @NonNull QueryMethod method) {
-    if (method.method.getThrownTypes().isEmpty()) {
-      return "";
-    } else {
-      final var sb = new StringBuilder().append("throws ");
-      final var exceptionType = method.method.getThrownTypes().iterator();
-      appendException(sb, exceptionType.next());
-      while (exceptionType.hasNext()) {
-        sb.append(", ");
-        appendException(sb, exceptionType.next());
-      }
-      return sb.toString();
-    }
-  }
-
-  private void appendException(
-      final @NonNull StringBuilder sb,
-      final @NonNull TypeMirror exceptionType) {
-    final var type = (DeclaredType) exceptionType;
-    sb.append(type.asElement().getSimpleName());
-  }
-
-  @NonNull
-  String queryParametersOf(final @NonNull QueryMethod method) {
-    if (method.method.getParameters().isEmpty()) {
-      return "";
-    } else {
-      final var sb = new StringBuilder();
-      final var parameter = method.method.getParameters().iterator();
-      //appendQueryParameter(parameter.next(), sb);
-      while (parameter.hasNext()) {
-        sb.append(", ");
-        //appendQueryParameter(parameter.next(), sb);
-      }
-      return sb.toString();
-    }
-  }
-
-  void appendQueryParameter(
-      final @NonNull VariableElement parameter,
-      final @NonNull StringBuilder sb) {
-    sb.append('"').append(aliasOf(parameter)).append("\", ").append(this.valueTypes.getSerializerFor(parameter));
-  }
-
-  @NonNull
-  String aliasOf(final @NonNull Element parameter) {
-    final var alias = parameter.getAnnotation(Alias.class);
-    if (alias == null) {
-      return parameter.getSimpleName().toString();
-    } else {
-      return alias.value();
-    }
-  }
 
   @NonNull
   String cypherOf(final @NonNull QueryMethod method) {
@@ -280,19 +222,37 @@ final class Java21ImplementationCodeBuilder implements ImplementationCodeBuilder
     parameter.asType().accept(RepresentType.VISITOR, this.sb);
     return new ParameterSpec(
         this.sb.toString(),
-        parameter.getSimpleName().toString()
+        parameter.getSimpleName().toString(),
+        aliasOf(parameter),
+        this.parameterValueMapper.getMapperOf(parameter)
     );
+  }
+  @NonNull
+  String aliasOf(final @NonNull Element parameter) {
+    final var alias = parameter.getAnnotation(Alias.class);
+    if (alias == null) {
+      return parameter.getSimpleName().toString();
+    } else {
+      return alias.value();
+    }
   }
 
   final static class ParameterSpec {
     public final @NonNull String type;
     public final @NonNull String name;
 
+    public final @NonNull String alias;
+
+    public final @NonNull String value;
     ParameterSpec(
         final @NonNull String type,
-        final @NonNull String name) {
+        final @NonNull String name,
+        final @NonNull String alias,
+        final @NonNull String value) {
       this.type = type;
       this.name = name;
+      this.alias = alias;
+      this.value = value;
     }
   }
 }

@@ -37,12 +37,29 @@ import javax.lang.model.SourceVersion;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.TypeElement;
 import javax.tools.Diagnostic;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Set;
 
 @SupportedSourceVersion(SourceVersion.RELEASE_21)
 @AutoService(Processor.class)
 public class QueriesProcessor extends AbstractProcessor {
+
+  private final @NonNull String today;
+
+  public QueriesProcessor() {
+    this(LocalDateTime.now());
+  }
+
+  QueriesProcessor(final @NonNull String today) {
+    this.today = today;
+  }
+
+  QueriesProcessor(final @NonNull LocalDateTime today) {
+    this(today.format(DateTimeFormatter.ISO_DATE_TIME));
+  }
+
 
   @Override
   public @NonNull Set<@NonNull String> getSupportedAnnotationTypes() {
@@ -79,7 +96,7 @@ public class QueriesProcessor extends AbstractProcessor {
 
   private void generateCodeFor(final @NonNull List<@NonNull QueriesAnnotatedInterface> queries) {
     if (!queries.isEmpty()) {
-      final var codeBuilder = new Java21ImplementationCodeBuilder(this.processingEnv);
+      final var codeBuilder = new Java21ImplementationCodeBuilder(this.today, this.processingEnv);
       for (final var q : queries) {
         System.out.println(codeBuilder.getImplementationCodeFor(q));
       }

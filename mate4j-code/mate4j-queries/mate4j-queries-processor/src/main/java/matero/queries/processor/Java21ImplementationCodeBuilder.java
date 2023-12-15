@@ -52,10 +52,6 @@ final class Java21ImplementationCodeBuilder implements ImplementationCodeBuilder
   private final @NonNull STGroup templates;
   private final @NonNull StringBuilder sb;
 
-  Java21ImplementationCodeBuilder(final @NonNull ProcessingEnvironment processingEnv) {
-    this(LocalDateTime.now(), processingEnv);
-  }
-
   Java21ImplementationCodeBuilder(
       final @NonNull LocalDateTime date,
       final @NonNull ProcessingEnvironment processingEnv) {

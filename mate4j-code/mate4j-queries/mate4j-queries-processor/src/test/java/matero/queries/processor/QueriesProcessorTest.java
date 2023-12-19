@@ -83,15 +83,25 @@ public class QueriesProcessorTest {
                                                              
             @Queries
             public interface Players {
-              @Query("MATCH (p:Player {id: $id}) RETURN p IS NOT NULL")
-              boolean existsPlayerWithId(long id)
-                  throws EntityNotFoundException;
-              
-              @Query(cypher = \"\"\"
-                MATCH (n:Player)
-                WHERE n.id = $playerId
-                DETACH DELETE n\"\"\", txType = TransactionType.WRITE)
-              void delete(@NonNull @Alias("playerId") int id) throws NullPointerException, EntityNotFoundException;
+              @Query("MATCH (n {id:$id}) RETURN n.booleanProp") boolean get_boolean(long id);
+              @Query("MATCH (n {id:$id}) RETURN n.booleanProp") Boolean get_Boolean(long id);
+              @Query("MATCH (n {id:$id}) RETURN n.byteProp") byte get_byte(long id);
+              @Query("MATCH (n {id:$id}) RETURN n.byteProp") Byte get_Byte(long id);
+              @Query("MATCH (n {id:$id}) RETURN n.byteArrayProp") byte[] get_byteArray(long id);
+              @Query("MATCH (n {id:$id}) RETURN n.charProp") char get_char(long id);
+              @Query("MATCH (n {id:$id}) RETURN n.charProp") Character get_Character(long id);
+              @Query("MATCH (n {id:$id}) RETURN n.doubleProp") double get_double(long id);
+              @Query("MATCH (n {id:$id}) RETURN n.doubleProp") Double get_Double(long id);
+              @Query("MATCH (n {id:$id}) RETURN n.floatProp") float get_float(long id);
+              @Query("MATCH (n {id:$id}) RETURN n.floatProp") Float get_Float(long id);
+              @Query("MATCH (n {id:$id}) RETURN n.intProp") int get_int(long id);
+              @Query("MATCH (n {id:$id}) RETURN n.intProp") Integer get_Integer(long id);
+              @Query("MATCH (n {id:$id}) RETURN n.longProp") long get_long(long id);
+              @Query("MATCH (n {id:$id}) RETURN n.longProp") Long get_Long(long id);
+              @Query("MATCH (n {id:$id}) RETURN n.shortProp") short get_short(long id);
+              @Query("MATCH (n {id:$id}) RETURN n.shortProp") Short get_Short(long id);
+              @Query("MATCH (n {id:$id}) RETURN n.voidProp") void get_void(long id);
+              @Query("MATCH (n {id:$id}) RETURN n.voidProp") Void get_Void(long id);
             }"""));
     assertThat(compilation)
         .succeeded();

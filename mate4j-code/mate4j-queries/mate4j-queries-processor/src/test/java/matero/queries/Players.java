@@ -26,163 +26,73 @@ package matero.queries;
  * #L%
  */
 
-/*
+import matero.support.ClassNotInstantiable;
+import org.checkerframework.checker.nullness.qual.NonNull;
+import org.neo4j.driver.Values;
+import org.neo4j.exceptions.EntityNotFoundException;
+
 @Queries
 public interface Players {
+  @Query("MATCH (p:Player {id: $id}) RETURN p IS NOT NULL")
+  boolean existsPlayerWithId(long id)
+      throws EntityNotFoundException;
 
-  @MATCH
-  boolean existsPlayerWithId(long playerId);
+  @Query(cypher = """
+      MATCH (n:Player)
+      WHERE n.id = $playerId
+      DETACH DELETE n""", txType = TransactionType.WRITE)
+  void delete(@Alias("playerId") int id) throws NullPointerException, EntityNotFoundException;
 
-  @MATCH
-  boolean exists(@NonNull PlayerId playerId);
-
-  @MATCH
-  @Nullable Node findPlayerNodeById(long playerId);
-
-  @MATCH
-  @Nullable Map<@NonNull String, @Nullable Object> findPlayerPropertiesById(long playerId);
-
-  @MATCH
-  @Nullable Player findPlayerBy(@NonNull PlayerId playerId);
-
-  @MATCH
-  @Alias("p")
-  Player getPlayerBy(@NonNull PlayerId playerId);
-
-  @MATCH(parserClass = Player.class, parserMethod = "parseProperties")
-  Optional<@NonNull Player> playerBy(@NonNull PlayerId playerId);
+  @Query("MATCH (n:Player) WHERE n.id = $playerId RETURN n")
+  Object get(int i);
 }
 
-@Generated("mate4j-queries")
-final class PlayersNeo4jRepository implements Players {
-
-  @Override
-  public boolean existsPlayerWithId(final long playerId) {
-    final var queryParameter = Map.<@NonNull String, @NonNull Object>of("playerId", playerId);
-
-    return CurrentSession.get()
-        .executeRead(tx -> { // it is a MATCH -> executeRead
-          final var result = tx.run("MATCH (p:Player {id: ${playerId}) RETURN p IS NOT NULL", queryParameter);
-          final var row = result.next(); // returns a primitive -> assume it has a value
-          final var value = row.get(0); // it is a primitive -> get first (supodsely only) column on result
-          return value.asBoolean(false); // translate, if null use default primitive value
-        });
+final class queries {
+  private queries() {
+    throw new ClassNotInstantiable(queries.class);
   }
 
-  @Override
-  public boolean exists(final @NonNull PlayerId playerId) {
-    final var queryParameter = Map.<@NonNull String, @NonNull Object>of(
-        "playerId", // by default, use parameter name
-        PlayerId.AS_PARAMETER.apply(playerId));
+  static final Players Players = PlayersJ21Impl.INSTANCE;
+}
 
-    return CurrentSession.get()
-        .executeRead(tx -> { // it is a MATCH -> executeRead
-          final var result = tx.run("MATCH (p:Player {id: ${playerId}) RETURN p IS NOT NULL", queryParameter);
-          final var row = result.next(); // returns a primitive -> assume it has a value
-          final var value = row.get(0); // it is a primitive -> get first (supodsely only) column on result
-          return value.asBoolean(false); // translate, if null use default primitive value
-        });
-  }
+enum PlayersJ21Impl implements Players {
+  INSTANCE;
 
   @Override
-  public @Nullable Node findPlayerNodeById(final long playerId) {
-    final var queryParameter = Map.<@NonNull String, @NonNull Object>of("playerId", playerId);
+  public boolean existsPlayerWithId(long id) throws EntityNotFoundException {
+    final var __query = new org.neo4j.driver.Query(
+        "MATCH (p:Player {id: $id}) RETURN p IS NOT NULL",
+        java.util.Map.of("id", Values.value(id))
+    );
 
-    final var node = CurrentSession.get().executeRead(tx -> { // it is a MATCH -> executeRead
-          final var result = tx.run("MATCH (player:Player {id: ${playerId}) RETURN player LIMIT 1", queryParameter);
-          if (result.hasNext()) { // non-primitive, non-sequence -> can be null
-            final var row = result.next(); // returns a primitive -> assume it has a value
-            if (result.hasNext()) {
-              throw new IllegalStateException("too many rows while solving Players#findPlayerBy(PlayerId)");
-            }
-            return row.get(0).asNode();
-          } else {
-            return null;
-          }
-        });
-    return node;
-  }
-
-  @Override
-  public @Nullable Map<@NonNull String, @Nullable Object> findPlayerPropertiesById(final long playerId) {
-    final var queryParameter = Map.<@NonNull String, @NonNull Object>of("playerId", playerId);
-
-    final var map = CurrentSession.get().executeRead(tx -> { // it is a MATCH -> executeRead
-      final var result = tx.run("MATCH (player:Player {id: ${playerId}) RETURN player LIMIT 1", queryParameter);
-      if (result.hasNext()) { // non-primitive, non-sequence -> can be null
-        final var row = result.next(); // returns a primitive -> assume it has a value
-        if (result.hasNext()) {
-          throw new IllegalStateException("too many rows while solving Players#findPlayerBy(PlayerId)");
-        }
-        return row.get(0).asMap();
-      } else {
-        return null;
+    return matero.queries.neo4j.CurrentSession.get().executeRead(tx -> {
+      final var result = tx.run(__query);
+      if (!result.hasNext()) {
+        throw new matero.queries.EmptyResult();
       }
+      final var row = result.next();
+      if (result.hasNext()) {
+        throw matero.queries.TooManyRows.moreThanOne();
+      }
+      final var value = row.get(0);
+      return value.asBoolean();
     });
-    return map;
   }
 
   @Override
-  public @Nullable Player findPlayerBy(final @NonNull PlayerId playerId) {
-    final var queryParameter = Map.<@NonNull String, @NonNull Object>of(
-        "playerId", // by default, use parameter name
-        PlayerId.AS_PARAMETER.apply(playerId)); // this allow
-
-    final var player = CurrentSession.get().executeRead(tx -> { // it is a MATCH -> executeRead
-      final var result = tx.run("MATCH (player:Player {id: ${playerId}) RETURN player LIMIT 1", queryParameter);
-      if (result.hasNext()) { // non-primitive, non-sequence -> can be null
-        final var row = result.next(); // returns a primitive -> assume it has a value
-        if (result.hasNext()) {
-          throw new IllegalStateException("too many rows while solving Players#findPlayerBy(PlayerId)");
-        }
-        return Player.parse(row.get(0));
-      } else {
-        return null;
-      }
-    });
-    return player;
+  public void delete(int id) throws NullPointerException, EntityNotFoundException {
+    final var __query = new org.neo4j.driver.Query(
+        """
+            MATCH (n:Player)
+            WHERE n.id = $playerId
+            DETACH DELETE n""",
+        java.util.Map.of("id", Values.value(id))
+    );
+    matero.queries.neo4j.CurrentSession.get().executeWrite(tx -> tx.run(__query));
   }
 
   @Override
-  public @NonNull Player getPlayerBy(final @NonNull PlayerId playerId) {
-    final var queryParameter = Map.<@NonNull String, @NonNull Object>of(
-        "playerId", // by default, use parameter name
-        PlayerId.AS_PARAMETER.apply(playerId)); // this allow
-
-    final var player = CurrentSession.get().executeRead(tx -> { // it is a MATCH -> executeRead
-      final var result = tx.run("MATCH (p:Player {id: ${playerId}) RETURN p LIMIT 1", queryParameter);
-      if (result.hasNext()) { // non-primitive, non-sequence -> can be null
-        final var row = result.next(); // returns a primitive -> assume it has a value
-        if (result.hasNext()) {
-          throw new IllegalStateException("too many rows while solving Players#findPlayerBy(PlayerId)");
-        }
-        return Player.parse(row.get("p"));
-      } else {
-        throw new IllegalStateException("empty result while solving Players#findPlayerBy(PlayerId)");
-      }
-    });
-    return player;
-  }
-
-  @Override
-  public @NonNull Optional<@NonNull Player> playerBy(final @NonNull PlayerId playerId) {
-    final var queryParameter = Map.<@NonNull String, @NonNull Object>of(
-        "playerId", // by default, use parameter name
-        PlayerId.AS_PARAMETER.apply(playerId)); // this allow
-
-    final Optional<@NonNull Player> player = CurrentSession.get().executeRead(tx -> { // it is a MATCH -> executeRead
-      final var result = tx.run("MATCH (player:Player {id: ${playerId}) RETURN player LIMIT 1", queryParameter);
-      if (result.hasNext()) { // non-primitive, non-sequence -> can be null
-        final var row = result.next(); // returns a primitive -> assume it has a value
-        if (result.hasNext()) {
-          throw new IllegalStateException("too many rows while solving Players#findPlayerBy(PlayerId)");
-        }
-        return Optional.ofNullable(Player.parseProperties(row));
-      } else {
-        return Optional.empty();
-      }
-    });
-    return player;
+  public Object get(int i) {
+    return Long.MAX_VALUE;
   }
 }
-*/

@@ -18,6 +18,10 @@
     </dependency>
     <dependency>
       <groupId>matero</groupId>
+      <artifactId>mate4j-queries-exceptions</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>matero</groupId>
       <artifactId>mate4j-queries-neo4j</artifactId>
     </dependency>
     <dependency>

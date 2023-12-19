@@ -33,7 +33,7 @@ import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.type.*;
 import java.util.List;
 
-enum RepresentType implements TypeVisitor<@Nullable Void, @NonNull StringBuilder> {
+enum RepresentParameter implements TypeVisitor<@Nullable Void, @NonNull StringBuilder> {
   VISITOR;
 
   @Override

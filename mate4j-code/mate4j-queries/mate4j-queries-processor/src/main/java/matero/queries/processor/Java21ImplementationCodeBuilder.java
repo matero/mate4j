@@ -52,7 +52,6 @@ final class Java21ImplementationCodeBuilder implements ImplementationCodeBuilder
 
   private final @NonNull ParameterValueMapper parameterValueMapper;
   private final @NonNull STGroup templates;
-  private final @NonNull StringBuilder sb;
 
   Java21ImplementationCodeBuilder(
       final @NonNull LocalDateTime date,
@@ -70,7 +69,6 @@ final class Java21ImplementationCodeBuilder implements ImplementationCodeBuilder
     this.resultProcessor = new ResultProcessor();
 
     this.templates = new STGroupDir("templates/java21");
-    this.sb = new StringBuilder();
 
     final var elements = processingEnv.getElementUtils();
 
@@ -88,32 +86,6 @@ final class Java21ImplementationCodeBuilder implements ImplementationCodeBuilder
     impl.add("spec", asJava21Spec(queries));
     impl.add("date", this.date);
     return impl.render();
-  }
-
-  @NonNull
-  String cypherOf(final @NonNull QueryMethod method) {
-    final var cypher = method.cypher.trim();
-
-    if (cypher.contains("\n")) {
-      return "\"\"\"\n" + cypher + "\"\"\"";
-    } else {
-      return '"' + cypher + '"';
-    }
-  }
-
-  @NonNull
-  String processResultOf(final @NonNull QueryMethod method) {
-    if (isVoid(method)) {
-      return "";
-    } else if (this.isVoidWrapper.apply(method.method.getReturnType())) {
-      return "return null;";
-    } else {
-      return "return null; // TBD";
-    }
-  }
-
-  boolean isVoid(final @NonNull QueryMethod method) {
-    return method.method.getReturnType().getKind() == TypeKind.VOID;
   }
 
   @NonNull ImplSpec asJava21Spec(final @NonNull QueriesAnnotatedInterface queries) {
@@ -169,10 +141,9 @@ final class Java21ImplementationCodeBuilder implements ImplementationCodeBuilder
   }
 
   @NonNull MethodSpec asMethodSpec(final @NonNull QueryMethod m) {
-    this.sb.setLength(0);
-    m.method.getReturnType().accept(RepresentType.VISITOR, sb);
+    final var returnType = DescribeJavaReturnType.VISITOR.visit(m.method.getReturnType()).build();
     return new MethodSpec(
-        sb.toString(),
+        returnType,
         m.method.getSimpleName().toString(),
         m.method.getParameters().stream()
             .map(this::asParameterSpec)
@@ -181,14 +152,12 @@ final class Java21ImplementationCodeBuilder implements ImplementationCodeBuilder
             .map(it -> ((DeclaredType) it).asElement().getSimpleName().toString())
             .collect(Collectors.toList()),
         m.txType.executorMethod,
-        m.cypher,
-        !(isVoid(m) || isVoidWrapper.apply(m.method.getReturnType())),
-        isVoidWrapper.apply(m.method.getReturnType())
+        m.cypher
     );
   }
 
   final static class MethodSpec {
-    public final @NonNull String returnType;
+    public final @NonNull ReturnType returnType;
     public final @NonNull String name;
 
     public final @NonNull List<@NonNull ParameterSpec> parameters;
@@ -198,26 +167,19 @@ final class Java21ImplementationCodeBuilder implements ImplementationCodeBuilder
     public final @NonNull String executor;
     private final @NonNull String cypher;
 
-    public final boolean returnsValue;
-    public final boolean returnsNull;
-
     MethodSpec(
-        final @NonNull String returnType,
+        final @NonNull ReturnType returnType,
         final @NonNull String name,
         final @NonNull List<@NonNull ParameterSpec> parameters,
         final @NonNull List<@NonNull String> exceptions,
         final @NonNull String executor,
-        final @NonNull String cypher,
-        final boolean returnsValue,
-        final boolean returnsNull) {
+        final @NonNull String cypher) {
       this.returnType = returnType;
       this.name = name;
       this.parameters = parameters;
       this.exceptions = exceptions;
       this.executor = executor;
       this.cypher = cypher;
-      this.returnsValue = returnsValue;
-      this.returnsNull = returnsNull;
     }
 
     public boolean isDeclareThrows() {
@@ -234,10 +196,11 @@ final class Java21ImplementationCodeBuilder implements ImplementationCodeBuilder
   }
 
   @NonNull ParameterSpec asParameterSpec(final @NonNull VariableElement parameter) {
-    this.sb.setLength(0);
-    parameter.asType().accept(RepresentType.VISITOR, this.sb);
+    // FIXME
+    final var sb = new StringBuilder();
+    parameter.asType().accept(RepresentParameter.VISITOR, sb);
     return new ParameterSpec(
-        this.sb.toString(),
+        sb.toString(),
         parameter.getSimpleName().toString(),
         aliasOf(parameter),
         this.parameterValueMapper.getMapperOf(parameter)

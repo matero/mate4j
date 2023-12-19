@@ -1,0 +1,1 @@
+void(executor) ::= "matero.queries.neo4j.CurrentSession.get().<executor>(tx -> tx.run(__query));"

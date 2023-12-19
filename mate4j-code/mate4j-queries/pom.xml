@@ -16,6 +16,7 @@
     <module>mate4j-queries-api</module>
     <module>mate4j-queries-neo4j</module>
     <module>mate4j-queries-processor</module>
+    <module>mate4j-queries-exceptions</module>
   </modules>
 
   <dependencyManagement>
@@ -23,6 +24,11 @@
       <dependency>
         <groupId>matero</groupId>
         <artifactId>mate4j-queries-api</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>matero</groupId>
+        <artifactId>mate4j-queries-exceptions</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>

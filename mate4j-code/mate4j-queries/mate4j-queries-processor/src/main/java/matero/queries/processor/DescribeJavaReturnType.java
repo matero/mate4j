@@ -509,7 +509,7 @@ enum DescribeJavaReturnType
         builder.supportedReference(name);
         break;
       default:
-        throw new IllegalQueriesDefinition(t.asElement(), "unsupported type");
+        throw new IllegalQueriesDefinition(t.asElement(), "unsupported type "+t);
     }
 /*
       final var typeArguments = t.getTypeArguments();

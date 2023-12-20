@@ -27,21 +27,26 @@ package matero.queries.processor;
  */
 
 import com.google.testing.compile.JavaFileObjects;
-import matero.queries.Query;
-import matero.queries.TransactionType;
-import matero.queries.neo4j.CurrentSession;
+import org.checkerframework.checker.nullness.qual.NonNull;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
+import org.neo4j.driver.types.*;
 
-import java.util.Map;
+import java.time.*;
+import java.util.List;
 
 import static com.google.testing.compile.CompilationSubject.assertThat;
 import static com.google.testing.compile.Compiler.javac;
 
 public class QueriesProcessorTest {
+
+  private static final LocalDateTime PROCESSING_DATETIME = LocalDateTime.of(2008, Month.MARCH, 20, 8, 30, 0);
+
   @Test
   void non_annotated_class_should_be_compilable() {
     final var compilation = javac()
-        .withProcessors(new QueriesProcessor())
+        .withProcessors(new QueriesProcessor(PROCESSING_DATETIME))
         .compile(JavaFileObjects.forSourceString("HelloWorld", "final class HelloWorld {}"));
     assertThat(compilation)
         .succeeded();
@@ -50,7 +55,7 @@ public class QueriesProcessorTest {
   @Test
   void annotated_class_should_not_be_compilable() {
     final var compilation = javac()
-        .withProcessors(new QueriesProcessor())
+        .withProcessors(new QueriesProcessor(PROCESSING_DATETIME))
         .compile(JavaFileObjects.forSourceString("HelloWorld", "@matero.queries.Queries class HelloWorld {}"));
     assertThat(compilation)
         .hadErrorCount(1);
@@ -61,65 +66,163 @@ public class QueriesProcessorTest {
   @Test
   void annotated_interface_should_be_compilable() {
     final var compilation = javac()
-        .withProcessors(new QueriesProcessor())
+        .withProcessors(new QueriesProcessor(PROCESSING_DATETIME))
         .compile(JavaFileObjects.forSourceString("HelloWorld", "@matero.queries.Queries interface HelloWorld {}"));
     assertThat(compilation)
         .succeeded();
   }
 
-  @Test
-  void annotated_interface_with_MATCH_method_over_default_types_should_be_compilable() {
+  @ParameterizedTest
+  @ValueSource(classes = {boolean.class, char.class, byte.class, short.class, int.class, long.class, float.class, double.class})
+  void query_method_returning_primitive_should_be_compilable(final @NonNull Class<?> primitiveType) {
+    final var compiler = javac()
+        .withProcessors(new QueriesProcessor(PROCESSING_DATETIME));
+    final var compilation = compiler
+        .compile(JavaFileObjects.forSourceString("sample.queries.Players", queryWithTypeResult(primitiveType.getTypeName())));
+    assertThat(compilation)
+        .succeeded();
+  }
+
+  @ParameterizedTest
+  @ValueSource(classes = {Boolean.class, Character.class, Byte.class, Short.class, Integer.class, Long.class, Float.class, Double.class})
+  void query_method_returning_primitive_wrapper_should_be_compilable(final @NonNull Class<?> primitiveWrapperClass) {
+    final var compiler = javac()
+        .withProcessors(new QueriesProcessor(PROCESSING_DATETIME));
+    final var compilation = compiler
+        .compile(JavaFileObjects.forSourceString("sample.queries.Players", queryWithTypeResult(primitiveWrapperClass.getSimpleName())));
+    assertThat(compilation)
+        .succeeded();
+  }
+
+  @NonNull String queryWithTypeResult(final @NonNull String typeName) {
+    return """
+        package sample.queries;
+
+        import matero.queries.*;
+
+        @Queries
+        public interface Players {
+          @Query("MATCH (n:Player {id:$id}) RETURN n.""".strip() + typeName + "Prop\")" + typeName + " get_" + typeName + "(long id);\n}";
+  }
+
+  @ParameterizedTest
+  @ValueSource(classes = {void.class, Void.class})
+  void void_query_method_should_be_compilable(final @NonNull Class<?> voidClass) {
+    final var compiler = javac()
+        .withProcessors(new QueriesProcessor(PROCESSING_DATETIME));
+    final var compilation = compiler
+        .compile(JavaFileObjects.forSourceString("sample.queries.Players", queryWithVoidResult(voidClass.getSimpleName())));
+    assertThat(compilation)
+        .succeeded();
+  }
+
+  @NonNull String queryWithVoidResult(final @NonNull String typeName) {
+    return """
+        package sample.queries;
+
+        import matero.queries.*;
+
+        @Queries
+        public interface Players {
+          @Query("MATCH (n:Player {id:$id}) DETACH DELETE n\") """ + typeName + " delete(long id);\n}";
+  }
+
+
+  @ParameterizedTest
+  @ValueSource(classes = {byte[].class, Object.class, String.class, Entity.class, Node.class, Relationship.class, Path.class, IsoDuration.class,
+      Point.class, LocalDate.class, LocalDateTime.class, OffsetTime.class, OffsetDateTime.class, LocalTime.class, ZonedDateTime.class})
+  void query_method_returning_supported_class_reference_should_be_compilable(final @NonNull Class<?> supportedClass) {
+    final var qname = supportedClass.getCanonicalName();
+
+    final var compilation = javac()
+        .withProcessors(new QueriesProcessor())
+        .compile(JavaFileObjects.forSourceString("sample.queries.Players", """
+            package sample.queries;
+                        
+            import matero.queries.*;
+                
+            @Queries
+            public interface Players {
+              @Query("MATCH (n {id:$id}) RETURN n.property") """ + qname + """
+              get(long id);
+            }"""));
+    assertThat(compilation)
+        .succeeded();
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {/*raw list*/"", "Object", /*list of any*/"?"})
+  void query_method_returning_list_of_Objects_should_be_compilable(final @NonNull String componentType) {
+    final var component = componentType.isEmpty() ? "" : ('<' + componentType + '>');
+    final var listType = List.class.getCanonicalName() + component;
     final var compilation = javac()
         .withProcessors(new QueriesProcessor())
         .compile(JavaFileObjects.forSourceString("sample.queries.Players", """
             package sample.queries;
                                                
-            import org.checkerframework.checker.nullness.qual.*;
             import matero.queries.*;
-            import java.util.*;
-            import java.time.*;
-            import java.util.concurrent.atomic.AtomicBoolean;
-    
-            import org.neo4j.exceptions.EntityNotFoundException;
-            import org.neo4j.driver.types.*;
                                                              
             @Queries
             public interface Players {
-              @Query("MATCH (n {id:$id}) RETURN n.booleanProp") boolean get_boolean(long id);
-              @Query("MATCH (n {id:$id}) RETURN n.booleanProp") Boolean get_Boolean(long id);
-              @Query("MATCH (n {id:$id}) RETURN n.byteProp") byte get_byte(long id);
-              @Query("MATCH (n {id:$id}) RETURN n.byteProp") Byte get_Byte(long id);
-              @Query("MATCH (n {id:$id}) RETURN n.byteArrayProp") byte[] get_byteArray(long id);
-              @Query("MATCH (n {id:$id}) RETURN n.charProp") char get_char(long id);
-              @Query("MATCH (n {id:$id}) RETURN n.charProp") Character get_Character(long id);
-              @Query("MATCH (n {id:$id}) RETURN n.doubleProp") double get_double(long id);
-              @Query("MATCH (n {id:$id}) RETURN n.doubleProp") Double get_Double(long id);
-              @Query("MATCH (n {id:$id}) RETURN n.floatProp") float get_float(long id);
-              @Query("MATCH (n {id:$id}) RETURN n.floatProp") Float get_Float(long id);
-              @Query("MATCH (n {id:$id}) RETURN n.intProp") int get_int(long id);
-              @Query("MATCH (n {id:$id}) RETURN n.intProp") Integer get_Integer(long id);
-              @Query("MATCH (n {id:$id}) RETURN n.longProp") long get_long(long id);
-              @Query("MATCH (n {id:$id}) RETURN n.longProp") Long get_Long(long id);
-              @Query("MATCH (n {id:$id}) RETURN n.shortProp") short get_short(long id);
-              @Query("MATCH (n {id:$id}) RETURN n.shortProp") Short get_Short(long id);
-              @Query("MATCH (n {id:$id}) RETURN n.voidProp") void get_void(long id);
-              @Query("MATCH (n {id:$id}) RETURN n.voidProp") Void get_Void(long id);
-              @Query("MATCH (n {id:$id}) RETURN n.prop") Object get_Object(long id);
-              @Query("MATCH (n {id:$id}) RETURN n.strProp") String get_String(long id);
-              @Query("MATCH (n {id:$id}) RETURN n") Entity get_Entity(long id);
-              @Query("MATCH (n {id:$id}) RETURN n") Node get_Node(long id);
-              @Query("MATCH (n {id:$id}) RETURN n") Relationship get_Relationship(long id);
-              @Query("MATCH (n {id:$id}) RETURN n") Path get_Path(long id);
-              @Query("MATCH (n {id:$id}) RETURN n") IsoDuration get_IsoDuration(long id);
-              @Query("MATCH (n {id:$id}) RETURN n") Point get_Point(long id);
-              @Query("MATCH (n {id:$id}) RETURN n") LocalDate get_LocalDate(long id);
-              @Query("MATCH (n {id:$id}) RETURN n") LocalDateTime get_LocalDateTime(long id);
-              @Query("MATCH (n {id:$id}) RETURN n") OffsetTime get_OffsetTime(long id);
-              @Query("MATCH (n {id:$id}) RETURN n") LocalTime get_LocalTime(long id);
-              @Query("MATCH (n {id:$id}) RETURN n") OffsetDateTime get_OffsetDateTime(long id);
-              @Query("MATCH (n {id:$id}) RETURN n") ZonedDateTime get_ZonedDateTime(long id);
-            }"""));
+              @Query("MATCH (n) RETURN n.prop") """ + listType + " get();\n}"));
     assertThat(compilation)
         .succeeded();
+  }
+
+  @ParameterizedTest
+  @ValueSource(classes = {
+      Boolean.class, Character.class, Byte.class, Short.class, Integer.class, Long.class, Float.class, Double.class, String.class, Entity.class,
+      Node.class, Relationship.class, Path.class, IsoDuration.class, Point.class, LocalDate.class, LocalDateTime.class, OffsetTime.class,
+      OffsetDateTime.class, LocalTime.class, ZonedDateTime.class})
+  void query_method_returning_list_of_supported_scalar_types_should_be_compilable(final @NonNull Class<?> componentType) {
+    final var listType = List.class.getCanonicalName() + '<' + componentType.getCanonicalName() + '>';
+    final var compilation = javac()
+        .withProcessors(new QueriesProcessor())
+        .compile(JavaFileObjects.forSourceString("sample.queries.Players", """
+            package sample.queries;
+                                               
+            import matero.queries.*;
+                                                             
+            @Queries
+            public interface Players {
+              @Query("MATCH (n) RETURN n.prop") """ + listType + " get();\n}"));
+    assertThat(compilation)
+        .succeeded();
+  }
+
+  @Test
+  void query_method_returning_list_of_byte_array_should_be_compilable() {
+    final var listType = List.class.getCanonicalName() + "<byte[]>";
+    final var compilation = javac()
+        .withProcessors(new QueriesProcessor())
+        .compile(JavaFileObjects.forSourceString("sample.queries.Players", """
+            package sample.queries;
+                                               
+            import matero.queries.*;
+                                                             
+            @Queries
+            public interface Players {
+              @Query("MATCH (n) RETURN n.prop") """ + listType + " get();\n}"));
+    assertThat(compilation)
+        .succeeded();
+  }
+
+  @Test
+  void query_method_returning_list_of_lists_should_NOT_be_compilable() {
+    final var listType = List.class.getCanonicalName() + "<" + List.class.getCanonicalName() + "<Boolean>>";
+    final var compilation = javac()
+        .withProcessors(new QueriesProcessor())
+        .compile(JavaFileObjects.forSourceString("sample.queries.Players", """
+            package sample.queries;
+                                               
+            import matero.queries.*;
+                                                             
+            @Queries
+            public interface Players {
+              @Query("MATCH (n) RETURN n.prop") """ + listType + " get();\n}"));
+    assertThat(compilation)
+        .hadErrorCount(1);
+    assertThat(compilation)
+        .hadErrorContaining("List of List are not supported");
   }
 }

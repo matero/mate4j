@@ -6,8 +6,8 @@ queryMethod(m) ::= <<
       <m.cypher>,
       java.util.Map.of(
         <m.parameters:{p | "<p.alias>", <p.value>}; separator=",\n">
-      );
+      )
     );
-  <(m.returnType.executionTemplate)(m.executor)>
+  <if (m.returnType.mapper)><(m.returnType.executionTemplate)(m.executor, m.returnType.mapper)><else><(m.returnType.executionTemplate)(m.executor)><endif>
 }
 >>

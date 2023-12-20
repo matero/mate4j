@@ -83,7 +83,8 @@ final class Java21ImplementationCodeBuilder implements ImplementationCodeBuilder
   @Override
   public @NonNull String getImplementationCodeFor(final @NonNull QueriesAnnotatedInterface queries) {
     final var impl = templates.getInstanceOf("impl");
-    impl.add("spec", asJava21Spec(queries));
+    ImplSpec java21Spec = asJava21Spec(queries);
+    impl.add("spec", java21Spec);
     impl.add("date", this.date);
     return impl.render();
   }

@@ -98,7 +98,11 @@ public class QueriesProcessor extends AbstractProcessor {
     if (!queries.isEmpty()) {
       final var codeBuilder = new Java21ImplementationCodeBuilder(this.today, this.processingEnv);
       for (final var q : queries) {
-        System.out.println(codeBuilder.getImplementationCodeFor(q));
+        try {
+          System.out.println(codeBuilder.getImplementationCodeFor(q));
+        } catch (final IllegalQueriesDefinition failure) {
+          error(failure.element, failure.getMessage());
+        }
       }
     }
   }

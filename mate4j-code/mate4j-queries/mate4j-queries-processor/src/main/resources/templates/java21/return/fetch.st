@@ -1,1 +1,0 @@
-fetch(executor, fetcher) ::= "return matero.queries.neo4j.CurrentSession.get().<executor>(tx -> tx.run(__query).<fetcher>>);"

@@ -58,27 +58,29 @@ enum DescribeJavaReturnType
   private static final @NonNull Mapper asIsoDuration = instanceMethod("value", "asIsoDuration");
   private static final @NonNull Mapper asPoint = instanceMethod("value", "asPoint");
   private static final @NonNull Mapper asList = instanceMethod("value", "asList");
-  private static final @NonNull Mapper toPrimitiveBoolean = staticMethod("value", "matero.queries.neo4j.MapValue.toPrimitiveBoolean");
-  private static final @NonNull Mapper toPrimitiveChar = staticMethod("value", "matero.queries.neo4j.MapValue.toPrimitiveChar");
-  private static final @NonNull Mapper toPrimitiveByte = staticMethod("value", "matero.queries.neo4j.MapValue.toPrimitiveByte");
-  private static final @NonNull Mapper toPrimitiveShort = staticMethod("value", "matero.queries.neo4j.MapValue.toPrimitiveShort");
-  private static final @NonNull Mapper toPrimitiveInt = staticMethod("value", "matero.queries.neo4j.MapValue.toPrimitiveInt");
-  private static final @NonNull Mapper toPrimitiveLong = staticMethod("value", "matero.queries.neo4j.MapValue.toPrimitiveLong");
-  private static final @NonNull Mapper toPrimitiveFloat = staticMethod("value", "matero.queries.neo4j.MapValue.toPrimitiveFloat");
-  private static final @NonNull Mapper toPrimitiveDouble = staticMethod("value", "matero.queries.neo4j.MapValue.toPrimitiveDouble");
-  private static final @NonNull Mapper toNullableBoolean = staticMethod("value", "matero.queries.neo4j.MapValue.toNullableBoolean");
-  private static final @NonNull Mapper toNullableCharacter = staticMethod("value", "matero.queries.neo4j.MapValue.toNullableCharacter");
-  private static final @NonNull Mapper toNullableByte = staticMethod("value", "matero.queries.neo4j.MapValue.toNullableByte");
-  private static final @NonNull Mapper toNullableShort = staticMethod("value", "matero.queries.neo4j.MapValue.toNullableShort");
-  private static final @NonNull Mapper toNullableInteger = staticMethod("value", "matero.queries.neo4j.MapValue.toNullableInteger");
-  private static final @NonNull Mapper toNullableLong = staticMethod("value", "matero.queries.neo4j.MapValue.toNullableLong");
-  private static final @NonNull Mapper toNullableFloat = staticMethod("value", "matero.queries.neo4j.MapValue.toNullableFloat");
-  private static final @NonNull Mapper toNullableDouble = staticMethod("value", "matero.queries.neo4j.MapValue.toNullableDouble");
+  private static final @NonNull Mapper toPrimitiveBoolean = staticMethod("value", "matero.queries.neo4j.Map.FirstValue.toPrimitiveBoolean");
+  private static final @NonNull Mapper toPrimitiveChar = staticMethod("value", "matero.queries.neo4j.Map.FirstValue.toPrimitiveChar");
+  private static final @NonNull Mapper toPrimitiveByte = staticMethod("value", "matero.queries.neo4j.Map.FirstValue.toPrimitiveByte");
+  private static final @NonNull Mapper toPrimitiveShort = staticMethod("value", "matero.queries.neo4j.Map.FirstValue.toPrimitiveShort");
+  private static final @NonNull Mapper toPrimitiveInt = staticMethod("value", "matero.queries.neo4j.Map.FirstValue.toPrimitiveInt");
+  private static final @NonNull Mapper toPrimitiveLong = staticMethod("value", "matero.queries.neo4j.Map.FirstValue.toPrimitiveLong");
+  private static final @NonNull Mapper toPrimitiveFloat = staticMethod("value", "matero.queries.neo4j.Map.FirstValue.toPrimitiveFloat");
+  private static final @NonNull Mapper toPrimitiveDouble = staticMethod("value", "matero.queries.neo4j.Map.FirstValue.toPrimitiveDouble");
+  private static final @NonNull Mapper toNullableBoolean = staticMethod("value", "matero.queries.neo4j.Map.FirstValue.toNullableBoolean");
+  private static final @NonNull Mapper toNullableCharacter = staticMethod("value", "matero.queries.neo4j.Map.FirstValue.toNullableCharacter");
+  private static final @NonNull Mapper toNullableByte = staticMethod("value", "matero.queries.neo4j.Map.FirstValue.toNullableByte");
+  private static final @NonNull Mapper toNullableShort = staticMethod("value", "matero.queries.neo4j.Map.FirstValue.toNullableShort");
+  private static final @NonNull Mapper toNullableInteger = staticMethod("value", "matero.queries.neo4j.Map.FirstValue.toNullableInteger");
+  private static final @NonNull Mapper toNullableLong = staticMethod("value", "matero.queries.neo4j.Map.FirstValue.toNullableLong");
+  private static final @NonNull Mapper toNullableFloat = staticMethod("value", "matero.queries.neo4j.Map.FirstValue.toNullableFloat");
+  private static final @NonNull Mapper toNullableDouble = staticMethod("value", "matero.queries.neo4j.Map.FirstValue.toNullableDouble");
 
+  private static final @NonNull Mapper asRecord = instanceMethod("value", "matero.queries.neo4j.Map.QueryResult.toNullableRecord");
   private int level = 0;
 
   @Override
   public @NonNull ReturnTypeBuilder visit(final @NonNull TypeMirror t) {
+    this.level = 0;
     return visit(t, ReturnType.builder());
   }
 
@@ -214,10 +216,27 @@ enum DescribeJavaReturnType
       case "org.neo4j.driver.types.Point":
         builder.mapper(asPoint);
         break;
+      case "org.neo4j.driver.Record":
+        builder.mapper(asRecord);
+        break;
       case "java.util.List":
+        if (this.level > 1) {
+          this.level = 0; // avoid reporting false positives in Lists/Maps to be visited after this error
+          throw new IllegalQueriesDefinition(t.asElement(), "List as component is not supported");
+        }
+        visitList(t, builder);
+        return builder;
+      case "java.util.stream.Stream":
         if (this.level != 0) {
-          this.level = 0; // avoid reporting false positives in Lists to be visited after this error
-          throw new IllegalQueriesDefinition(t.asElement(), "List of List are not supported");
+          this.level = 0; // avoid reporting false positives in Lists/Maps to be visited after this error
+          throw new IllegalQueriesDefinition(t.asElement(), "Stream as component is not supported");
+        }
+        visitStream(t, builder);
+        return builder;
+      case "java.util.Map":
+        if (this.level > 1) {
+          this.level = 0; // avoid reporting false positives in Lists/Maps to be visited after this error
+          throw new IllegalQueriesDefinition(t.asElement(), "type not supported natively");
         }
         visitList(t, builder);
         return builder;
@@ -232,15 +251,29 @@ enum DescribeJavaReturnType
       final @NonNull ReturnTypeBuilder builder) {
     final var typeArguments = t.getTypeArguments();
     if (typeArguments.isEmpty()) {
-      builder.mapper(null).javaSpec("List");
+      builder.mapper(this.level == 0 ? null : asList).javaSpec("List");
     } else {
       this.level++;
-      final var componentBuilder = visit(typeArguments.getFirst());
-      if (asObject.equals(componentBuilder.getMapper())) {
-        builder.mapper(null);
+      final var componentBuilder = visit(typeArguments.getFirst(), ReturnType.builder());
+
+      final var componentMapper = componentBuilder.getMapper();
+      if (this.level > 1) {
+        if (componentMapper == null || asObject.equals(componentMapper)) {
+          builder.mapper(asList);
+        } else {
+          builder.mapper(asList.withArgument("row -> " + componentMapper.str("row")));
+        }
+        builder.executionTemplate("return/single");
       } else {
-        builder.mapper(componentBuilder.getMapper());
+        if (componentMapper == null || asObject.equals(componentMapper)) {
+          builder.mapper(null);
+        } else {
+          builder.mapper(componentMapper);
+        }
+        builder.executionTemplate("return/list");
       }
+
+
       if (componentBuilder.hasAnnotations()) {
         builder.javaSpec("List<" + componentBuilder.getAnnotations() + ' ' + componentBuilder.getJavaSpec() + '>');
       } else {
@@ -248,7 +281,30 @@ enum DescribeJavaReturnType
       }
       this.level--;
     }
-    builder.executionTemplate("return/list");
+  }
+
+  private void visitStream(
+      final @NonNull DeclaredType t,
+      final @NonNull ReturnTypeBuilder builder) {
+    final var typeArguments = t.getTypeArguments();
+    if (typeArguments.isEmpty()) {
+      builder.mapper(null).javaSpec("Stream");
+    } else {
+      this.level++;
+      final var componentBuilder = visit(typeArguments.getFirst(), ReturnType.builder());
+      if (asRecord.equals(componentBuilder.getMapper())) {
+        builder.mapper(null);
+      } else {
+        builder.mapper(componentBuilder.getMapper());
+      }
+      if (componentBuilder.hasAnnotations()) {
+        builder.javaSpec("Stream<" + componentBuilder.getAnnotations() + ' ' + componentBuilder.getJavaSpec() + '>');
+      } else {
+        builder.javaSpec("Stream<" + componentBuilder.getJavaSpec() + '>');
+      }
+      this.level--;
+    }
+    builder.executionTemplate("return/stream");
   }
 
   @Override

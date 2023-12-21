@@ -27,14 +27,17 @@ package matero.queries.processor;
  */
 
 import com.google.testing.compile.JavaFileObjects;
+import matero.queries.neo4j.Map;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.neo4j.driver.Record;
 import org.neo4j.driver.types.*;
 
 import java.time.*;
 import java.util.List;
+import java.util.stream.Stream;
 
 import static com.google.testing.compile.CompilationSubject.assertThat;
 import static com.google.testing.compile.Compiler.javac;
@@ -208,8 +211,8 @@ public class QueriesProcessorTest {
   }
 
   @Test
-  void query_method_returning_list_of_lists_should_NOT_be_compilable() {
-    final var listType = List.class.getCanonicalName() + "<" + List.class.getCanonicalName() + "<Boolean>>";
+  void query_method_returning_list_as_2nd_level_component_should_NOT_be_compilable() {
+    final var listType = List.class.getCanonicalName() + "<" + List.class.getCanonicalName() + "<" + List.class.getCanonicalName() + "<Boolean>>>";
     final var compilation = javac()
         .withProcessors(new QueriesProcessor())
         .compile(JavaFileObjects.forSourceString("sample.queries.Players", """
@@ -223,6 +226,48 @@ public class QueriesProcessorTest {
     assertThat(compilation)
         .hadErrorCount(1);
     assertThat(compilation)
-        .hadErrorContaining("List of List are not supported");
+        .hadErrorContaining("List as component is not supported");
+  }
+
+  @ParameterizedTest
+  @ValueSource(classes = {
+      Boolean.class, Character.class, Byte.class, Short.class, Integer.class, Long.class, Float.class, Double.class, String.class, Entity.class,
+      Node.class, Relationship.class, Path.class, IsoDuration.class, Point.class, LocalDate.class, LocalDateTime.class, OffsetTime.class,
+      OffsetDateTime.class, LocalTime.class, ZonedDateTime.class, Record.class, List.class})
+  void query_method_returning_Stream_should_be_compilable(final @NonNull Class<?> component) {
+    final var streamType = Stream.class.getCanonicalName() + '<' + component.getCanonicalName() + '>';
+    final var compilation = javac()
+        .withProcessors(new QueriesProcessor())
+        .compile(JavaFileObjects.forSourceString("sample.queries.Players", """
+            package sample.queries;
+                                               
+            import matero.queries.*;
+                                                             
+            @Queries
+            public interface Players {
+              @Query("MATCH (n) RETURN n.prop") """ + streamType + " get();\n}"));
+    assertThat(compilation)
+        .succeeded();
+  }
+
+  @ParameterizedTest
+  @ValueSource(classes = {
+      Boolean.class, Character.class, Byte.class, Short.class, Integer.class, Long.class, Float.class, Double.class, String.class, Entity.class,
+      Node.class, Relationship.class, Path.class, IsoDuration.class, Point.class, LocalDate.class, LocalDateTime.class, OffsetTime.class,
+      OffsetDateTime.class, LocalTime.class, ZonedDateTime.class, Record.class})
+  void query_method_returning_Stream_of_List_should_be_compilable(final @NonNull Class<?> component) {
+    final var streamType = Stream.class.getCanonicalName() + "<java.util.List<" + component.getCanonicalName() + ">>";
+    final var compilation = javac()
+        .withProcessors(new QueriesProcessor())
+        .compile(JavaFileObjects.forSourceString("sample.queries.Players", """
+            package sample.queries;
+                                               
+            import matero.queries.*;
+                                                             
+            @Queries
+            public interface Players {
+              @Query("MATCH (n) RETURN n.prop") """ + streamType + " get();\n}"));
+    assertThat(compilation)
+        .succeeded();
   }
 }

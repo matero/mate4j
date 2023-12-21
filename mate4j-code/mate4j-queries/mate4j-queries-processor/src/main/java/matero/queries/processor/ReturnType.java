@@ -12,10 +12,10 @@ package matero.queries.processor;
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -31,10 +31,10 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 final class ReturnType {
   static sealed abstract class Mapper permits StaticMethod, InstanceMethod {
-    public final @NonNull String target;
-    public final @NonNull String method;
+    final @NonNull String target;
+    final @NonNull String method;
 
-    public final @NonNull String argument;
+    @NonNull String argument;
 
     private Mapper(
         final @NonNull String target,
@@ -45,12 +45,15 @@ final class ReturnType {
       this.argument = argument;
     }
 
-    final @NonNull String asListArguments() {
-      return asListArguments("result");
-    }
-
-    final @NonNull String asListArguments(final @NonNull String target) {
-      return str(target);
+    @NonNull Mapper withArgument(final @NonNull String a) {
+      if (!a.isEmpty()) {
+        if (this.argument.isEmpty()) {
+          this.argument = a;
+        } else {
+          this.argument = this.argument + ", " + a;
+        }
+      }
+      return this;
     }
 
     abstract @NonNull String str(@NonNull String target);

@@ -27,7 +27,6 @@ package matero.queries.processor;
  */
 
 import com.google.testing.compile.JavaFileObjects;
-import matero.queries.neo4j.Map;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -37,6 +36,7 @@ import org.neo4j.driver.types.*;
 
 import java.time.*;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Stream;
 
 import static com.google.testing.compile.CompilationSubject.assertThat;
@@ -252,11 +252,11 @@ public class QueriesProcessorTest {
 
   @ParameterizedTest
   @ValueSource(classes = {
-      Boolean.class, Character.class, Byte.class, Short.class, Integer.class, Long.class, Float.class, Double.class, String.class, Entity.class,
+      Object.class, Boolean.class, Character.class, Byte.class, Short.class, Integer.class, Long.class, Float.class, Double.class, String.class, Entity.class,
       Node.class, Relationship.class, Path.class, IsoDuration.class, Point.class, LocalDate.class, LocalDateTime.class, OffsetTime.class,
       OffsetDateTime.class, LocalTime.class, ZonedDateTime.class, Record.class})
-  void query_method_returning_Stream_of_List_should_be_compilable(final @NonNull Class<?> component) {
-    final var streamType = Stream.class.getCanonicalName() + "<java.util.List<" + component.getCanonicalName() + ">>";
+  void query_method_returning_Map_should_be_compilable(final @NonNull Class<?> component) {
+    final var mapType = Map.class.getCanonicalName() + "<String, " + component.getCanonicalName() + ">";
     final var compilation = javac()
         .withProcessors(new QueriesProcessor())
         .compile(JavaFileObjects.forSourceString("sample.queries.Players", """
@@ -266,8 +266,9 @@ public class QueriesProcessorTest {
                                                              
             @Queries
             public interface Players {
-              @Query("MATCH (n) RETURN n.prop") """ + streamType + " get();\n}"));
+              @Query("MATCH (n) RETURN n.prop") """ + mapType + " get();\n}"));
     assertThat(compilation)
         .succeeded();
   }
+
 }

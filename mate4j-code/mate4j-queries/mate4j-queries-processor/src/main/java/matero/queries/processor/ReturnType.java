@@ -34,7 +34,7 @@ final class ReturnType {
     final @NonNull String target;
     final @NonNull String method;
 
-    @NonNull String argument;
+    final @NonNull String argument;
 
     private Mapper(
         final @NonNull String target,
@@ -48,13 +48,19 @@ final class ReturnType {
     @NonNull Mapper withArgument(final @NonNull String a) {
       if (!a.isEmpty()) {
         if (this.argument.isEmpty()) {
-          this.argument = a;
+          return make(this.target, this.method, a);
         } else {
-          this.argument = this.argument + ", " + a;
+          return make(this.target, this.method, this.argument + ", " + a);
         }
+      } else {
+        return this;
       }
-      return this;
     }
+
+    abstract @NonNull Mapper make(
+        @NonNull String target,
+        @NonNull String method,
+        @NonNull String argument);
 
     abstract @NonNull String str(@NonNull String target);
 
@@ -106,11 +112,19 @@ final class ReturnType {
         return this.method + '(' + target + ", " + this.argument + ')';
       }
     }
+
+    @Override
+    @NonNull Mapper make(
+        final @NonNull String target,
+        final @NonNull String method,
+        final @NonNull String argument) {
+      return new StaticMethod(target, method, argument);
+    }
   }
 
   private static final class InstanceMethod extends Mapper {
 
-    public InstanceMethod(
+    InstanceMethod(
         final @NonNull String target,
         final @NonNull String method,
         final @NonNull String arguments) {
@@ -125,6 +139,14 @@ final class ReturnType {
       } else {
         return target + '.' + this.method + '(' + this.argument + ')';
       }
+    }
+
+    @Override
+    @NonNull Mapper make(
+        final @NonNull String target,
+        final @NonNull String method,
+        final @NonNull String argument) {
+      return new InstanceMethod(target, method, argument);
     }
   }
 

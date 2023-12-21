@@ -58,6 +58,7 @@ enum DescribeJavaReturnType
   private static final @NonNull Mapper asIsoDuration = instanceMethod("value", "asIsoDuration");
   private static final @NonNull Mapper asPoint = instanceMethod("value", "asPoint");
   private static final @NonNull Mapper asList = instanceMethod("value", "asList");
+  private static final @NonNull Mapper asMap = instanceMethod("value", "asMap");
   private static final @NonNull Mapper toPrimitiveBoolean = staticMethod("value", "matero.queries.neo4j.Map.FirstValue.toPrimitiveBoolean");
   private static final @NonNull Mapper toPrimitiveChar = staticMethod("value", "matero.queries.neo4j.Map.FirstValue.toPrimitiveChar");
   private static final @NonNull Mapper toPrimitiveByte = staticMethod("value", "matero.queries.neo4j.Map.FirstValue.toPrimitiveByte");
@@ -222,9 +223,16 @@ enum DescribeJavaReturnType
       case "java.util.List":
         if (this.level > 1) {
           this.level = 0; // avoid reporting false positives in Lists/Maps to be visited after this error
-          throw new IllegalQueriesDefinition(t.asElement(), "List as component is not supported");
+          throw new IllegalQueriesDefinition(t.asElement(), "List as subcomponent is not supported");
         }
         visitList(t, builder);
+        return builder;
+      case "java.util.Map":
+        if (this.level > 1) {
+          this.level = 0; // avoid reporting false positives in Lists/Maps to be visited after this error
+          throw new IllegalQueriesDefinition(t.asElement(), "Map as subcomponent is not supported");
+        }
+        visitMap(t, builder);
         return builder;
       case "java.util.stream.Stream":
         if (this.level != 0) {
@@ -232,13 +240,6 @@ enum DescribeJavaReturnType
           throw new IllegalQueriesDefinition(t.asElement(), "Stream as component is not supported");
         }
         visitStream(t, builder);
-        return builder;
-      case "java.util.Map":
-        if (this.level > 1) {
-          this.level = 0; // avoid reporting false positives in Lists/Maps to be visited after this error
-          throw new IllegalQueriesDefinition(t.asElement(), "type not supported natively");
-        }
-        visitList(t, builder);
         return builder;
       default:
         throw new IllegalQueriesDefinition(t.asElement(), "unsupported type " + t);
@@ -263,7 +264,6 @@ enum DescribeJavaReturnType
         } else {
           builder.mapper(asList.withArgument("row -> " + componentMapper.str("row")));
         }
-        builder.executionTemplate("return/single");
       } else {
         if (componentMapper == null || asObject.equals(componentMapper)) {
           builder.mapper(null);
@@ -279,6 +279,43 @@ enum DescribeJavaReturnType
       } else {
         builder.javaSpec("List<" + componentBuilder.getJavaSpec() + '>');
       }
+      this.level--;
+    }
+  }
+
+  private void visitMap(
+      final @NonNull DeclaredType t,
+      final @NonNull ReturnTypeBuilder builder) {
+    final var typeArguments = t.getTypeArguments();
+    if (typeArguments.isEmpty()) {
+      builder.mapper(this.level == 0 ? null : asMap).javaSpec("Map");
+    } else {
+      this.level++;
+      final var keyBuilder = visit(typeArguments.getFirst(), ReturnType.builder());
+      if (!asString.equals(keyBuilder.getMapper())) {
+        throw new IllegalQueriesDefinition(t.asElement(), "only String can be used as map's key");
+      }
+
+      final var valueBuilder = visit(typeArguments.get(1), ReturnType.builder());
+      final var valueMapper = valueBuilder.getMapper();
+      if (valueMapper == null || asObject.equals(valueMapper)) {
+        builder.mapper(asMap);
+      } else {
+        builder.mapper(asMap.withArgument("row -> " + valueMapper.str("row")));
+      }
+      builder.executionTemplate("return/single");
+
+      final var javaSpec = new StringBuilder(32)
+          .append("Map<");
+      if (keyBuilder.hasAnnotations()) {
+        javaSpec.append(valueBuilder.getAnnotations()).append(' ');
+      }
+      javaSpec.append("String, ");
+      if (valueBuilder.hasAnnotations()) {
+        javaSpec.append(valueBuilder.getAnnotations()).append(' ');
+      }
+      javaSpec.append(valueBuilder.getJavaSpec()).append('>');
+      builder.javaSpec(javaSpec.toString());
       this.level--;
     }
   }
